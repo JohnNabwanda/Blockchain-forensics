@@ -24,3 +24,32 @@ RECALL_TARGET = 0.65          # reported against, not optimised for
 WATCH_FRACTION = 0.5          # medium band starts at WATCH_FRACTION * threshold
 
 RANDOM_STATE = 42
+
+# ---- Phase 2: TRON/USDT wallets and off-chain (mobile-money) attribution -------------------
+# Synthetic data only (concept note, Section 12). No real mobile-money records are used.
+PHASE2_DATA_DIR = ROOT / "data" / "phase2_synthetic"
+PHASE2_OUTPUT_DIR = OUTPUT_DIR / "phase2"
+
+# deposit-address detection: forwards (almost) everything it receives to one destination, quickly
+DEPOSIT_MAX_SWEEP_HOURS = 6
+DEPOSIT_MIN_FORWARD_SHARE = 0.95
+HOT_WALLET_MIN_DEPOSITS = 10          # a destination fed by this many deposit addresses is an exchange
+
+# P2P-trader detection: many distinct counterparties in both directions, active most days
+TRADER_MIN_COUNTERPARTIES = 25        # distinct senders AND distinct receivers
+TRADER_MIN_BALANCE = 0.25             # min(in, out) / max(in, out) of distinct counterparties
+TRADER_MIN_ACTIVE_SHARE = 0.4         # share of days in the period with any activity
+
+# off-chain matching (Section 12.3)
+MATCH_SELL_WINDOW_MIN = (-5, 45)      # user sells USDT: trader pays mobile money after receiving
+MATCH_BUY_WINDOW_MIN = (-60, 5)       # user buys USDT: user pays mobile money first
+MATCH_FEE_RANGE = (-0.005, 0.05)      # implied trader spread accepted after FX conversion
+MATCH_FEE_TYPICAL, MATCH_FEE_SD = 0.015, 0.012
+MATCH_TIME_SCALE_MIN = 15             # time score halves roughly every 10 minutes
+MATCH_MIN_LINK_SCORE = 0.25
+# confidence of a wallet-cluster <-> mobile-money account link. Evidence = sum of link scores, so
+# repeated co-occurrence adds up (Section 12.3); one strong coincidence cannot reach High.
+PAIR_HIGH_MIN_TRADES, PAIR_HIGH_MIN_EVIDENCE = 3, 2.0
+PAIR_MEDIUM_MIN_TRADES, PAIR_MEDIUM_MIN_EVIDENCE = 2, 1.0
+
+TAINT_MAX_HOPS = 2                    # follow funds this far from victim-reported wallets

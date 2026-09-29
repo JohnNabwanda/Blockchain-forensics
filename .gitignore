@@ -3,3 +3,5 @@ data/synthetic/
 outputs/
 __pycache__/
 .venv/
+data/phase2_synthetic/
+data/phase2_stress/

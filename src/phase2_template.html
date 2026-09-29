@@ -1,0 +1,300 @@
+<title>Cash-out Tracing Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!--__STYLE__-->
+<style>
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:1000px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.grid-4{grid-template-columns:1fr}}
+.nav{display:flex;flex-wrap:wrap;gap:8px}
+.nav a{color:var(--ink-2);text-decoration:none;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:var(--surface-2)}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+.flow text{font-family:var(--mono);font-size:10.5px;fill:var(--ink-2)}
+.flow .col{font-family:var(--sans);font-size:10.5px;fill:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+.flow .amt{fill:var(--ink);font-weight:500}
+.lead-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:700px){.lead-meta{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--surface-2);display:grid;gap:1px;min-width:0}
+.stat .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v{font-family:var(--mono);font-size:18px;font-weight:500;overflow-wrap:anywhere}
+.stat .t{font-size:11.5px;color:var(--ink-3)}
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:20px}
+.two>div,.detail>div,.detail-head{min-width:0}
+@media (max-width:900px){.two{grid-template-columns:1fr}}
+.case .ops{font-size:11px;color:var(--ink-3)}
+.bar-row{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:12px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.bar-row:last-child{border-bottom:0}
+.bar-row .lab{font-size:12.5px}
+.bar-row .lab small{display:block;color:var(--ink-3);font-size:11px}
+.bars{display:grid;gap:4px}
+.bars div{display:grid;grid-template-columns:minmax(0,1fr) 4.2rem;gap:8px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.track{height:7px;border-radius:4px;background:var(--grid);overflow:hidden}
+.track i{display:block;height:100%;border-radius:4px}
+.method{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:800px){.method{grid-template-columns:1fr}}
+.method div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+.method h3{font-family:var(--display);font-size:14px;margin-bottom:4px}
+.method p{margin:0;font-size:12.5px;color:var(--ink-2)}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="eyebrow">Blockchain forensics · Phase 2 · TRON/USDT and mobile money</div>
+    <h1>Cash-out tracing from reported wallets to mobile money</h1>
+    <div class="runline" id="runline"></div>
+    <nav class="nav" aria-label="Sections"><a href="#leads-h">Cash-out leads</a><a href="#how-h">How links are made</a><a href="#st-h">Stress test</a></nav>
+  </header>
+  <div class="banner">
+    <strong>Synthetic data.</strong>
+    <span>Every wallet, account and payment on this page was generated to test the matching logic. No real mobile-money or P2P records were used. Account IDs contain "SYN" and addresses start with "TSYN".</span>
+  </div>
+
+  <section class="grid-4" id="verdicts" aria-label="Phase 2 results"></section>
+
+  <section class="panel" aria-labelledby="leads-h">
+    <div class="panel-head"><div>
+      <h2 id="leads-h">Cash-out leads</h2>
+      <p id="leads-sub">Wallet clusters that received funds traced from victim-reported wallets, linked to the mobile-money account that received shillings when they sold USDT to P2P traders. Each lead is for an analyst to verify through lawful process.</p>
+    </div></div>
+    <div class="cases">
+      <div class="case-list" id="lead-list" role="listbox" aria-label="Cash-out leads"></div>
+      <div class="detail" id="lead-detail"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="how-h">
+    <div class="panel-head"><div>
+      <h2 id="how-h">How links are made</h2>
+      <p>Each USDT trade with a known P2P trader is matched to a payment on that trader's mobile-money statement. Confidence comes from repetition: one coincidence is never enough.</p>
+    </div></div>
+    <div class="method" id="method"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="st-h">
+    <div class="panel-head"><div>
+      <h2 id="st-h">Stress test</h2>
+      <p>The generator and the matcher share assumptions, so the baseline flatters the method. Each scenario is a fresh synthetic world that breaks one assumption.</p>
+    </div></div>
+    <div id="stress"></div>
+    <div class="legend">
+      <span><i class="sw box" style="background:var(--accent)"></i>Trades linked (link recall)</span>
+      <span><i class="sw box" style="background:var(--set2)"></i>Owners found at High confidence</span>
+      <span><i class="sw box" style="background:var(--good)"></i>High-confidence precision</span>
+    </div>
+    <details><summary>Show the full stress-test table</summary><div class="tbl-wrap" id="stress-table"></div></details>
+  </section>
+
+  <footer>Links are leads for human review, never proof of identity. A trader's mobile-money statement can only be obtained through lawful requests to the operator, and a linked account may belong to a relative or agent rather than the wallet owner. Nothing is sent to any external party automatically.</footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+const D = /*__DATA__*/null;
+const M = D.meta, X = D.metrics;
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const fmt = (v, d = 3) => v == null || isNaN(v) ? "–" : Number(v).toFixed(d);
+const int = v => Number(v).toLocaleString("en-US");
+const pct = v => v == null ? "–" : (100 * v).toFixed(1) + "%";
+const short = a => a.length > 14 ? a.slice(0, 7) + "…" + a.slice(-4) : a;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgFor(container, h) {
+  container.innerHTML = "";
+  const w = Math.max(container.clientWidth, 280);
+  const s = el("svg", {viewBox: `0 0 ${w} ${h}`, width: w, height: h, role: "img"});
+  container.appendChild(s);
+  return [s, w];
+}
+const ICON_OK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_NO = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+const tip = $("#tip");
+function showTip(e, title, rows) {
+  tip.innerHTML = `<div class="tt">${esc(title)}</div>` + rows.map(([k, v]) => `<div class="row"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join("");
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.hidden = true;
+
+/* ---------- header and verdicts ---------- */
+$("#runline").innerHTML = [
+  ["Period", `${M.days} days`], ["On-chain transfers", int(M.transfers)], ["Victim reports", `${M.reported} wallets`],
+  ["USD/TZS", `${int(Math.round(M.fx_min))}–${int(Math.round(M.fx_max))}`], ["Trace depth", `${M.hops} hops`],
+].map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join("");
+
+const T = X.p2p_traders, C = X.clustering, K = X.links, Ld = X.leads, A = X.attribution;
+const cards = [
+  {h: "Step 1", t: "P2P traders found", big: `${T.correct}/${T.actual}`, unit: "wallets", ok: T.precision >= .9 && T.recall >= .9,
+   p: `Precision ${fmt(T.precision)}, recall ${fmt(T.recall)}. Traders pay and are paid by many different wallets, most days.`},
+  {h: "Step 2", t: "Wallets clustered", big: fmt(C.pair_precision), unit: "pair precision", ok: C.pair_precision >= .95,
+   p: `Recall ${fmt(C.pair_recall)} over ${int(C.owners_with_several_wallets)} owners with several wallets, from deposit-address reuse and TRX activation.`},
+  {h: "Step 3", t: "Trades linked to payments", big: fmt(K.precision), unit: "link precision", ok: K.precision >= .9,
+   p: `Recall ${fmt(K.recall)} of ${int(K.actual)} mobile-money-settled trades with detected traders.`},
+  {h: "Step 4", t: "Cash-out accounts found", big: `${Ld.found_high_medium}/${Ld.mule_accounts_cashing_out}`, unit: "mule accounts", ok: Ld.wrong_leads_high_medium === 0,
+   p: `${Ld.wrong_leads_high_medium} High or Medium leads point to the wrong person. ${pct(A.recall_high)} of all traders' regular customers are linked at High confidence.`},
+];
+$("#verdicts").innerHTML = cards.map(v => `
+  <article class="verdict">
+    <div class="top"><span class="h">${v.h}</span>${v.ok ? `<span class="pill good">${ICON_OK}Works on synthetic data</span>` : `<span class="pill bad">${ICON_NO}Below target</span>`}</div>
+    <h3>${v.t}</h3>
+    <div class="big">${v.big}<small>${v.unit}</small></div>
+    <p>${v.p}</p>
+  </article>`).join("");
+
+/* ---------- leads ---------- */
+let current = 0;
+const bandPill = b => `<span class="pill neutral">${b} confidence</span>`;
+$("#lead-list").innerHTML = D.leads.map((l, i) => `
+  <button class="case" role="option" type="button" data-i="${i}" aria-selected="${i === 0}">
+    <span class="scorebar"><i style="width:${Math.min(100, 100 * l.evidence / D.leads[0].evidence)}%"></i></span>
+    <span><span class="id">${esc(l.account)}</span><br><span class="st">${esc(l.operator)} · ${l.trades} trades · ${l.traders} traders</span></span>
+    <span class="sc">${int(Math.round(l.tzs / 1e6 * 10) / 10)}M</span>
+  </button>`).join("") || `<p class="small">No cash-out leads.</p>`;
+$("#lead-list").addEventListener("click", e => {
+  const b = e.target.closest(".case"); if (!b) return;
+  current = +b.dataset.i;
+  document.querySelectorAll("#lead-list .case").forEach(x => x.setAttribute("aria-selected", +x.dataset.i === current));
+  renderLead();
+});
+$("#leads-sub").textContent += ` ${D.leads.length} leads; the right-hand figure is shillings received, in millions.`;
+
+function renderLead() {
+  const l = D.leads[current];
+  if (!l) { $("#lead-detail").innerHTML = ""; return; }
+  const moved = l.flow.internal.reduce((a, x) => a + x[2], 0);
+  $("#lead-detail").innerHTML = `
+    <div class="detail-head"><span class="mono">${esc(l.account)}</span>${bandPill(l.confidence)}
+      <span class="pill ${l.truth_same_owner ? "good" : "bad"}">${l.truth_same_owner ? ICON_OK + "Synthetic truth: same owner" : ICON_NO + "Synthetic truth: different owner"}</span></div>
+    <div class="lead-meta">
+      <div class="stat"><span class="k">Shillings received</span><span class="v">${int(l.tzs)}</span><span class="t">${esc(l.operator)}</span></div>
+      <div class="stat"><span class="k">USDT sold</span><span class="v">${int(Math.round(l.usdt))}</span><span class="t">${l.trades} trades, ${l.traders} traders</span></div>
+      <div class="stat"><span class="k">Evidence</span><span class="v">${fmt(l.evidence, 2)}</span><span class="t">High: ${M.high[0]}+ trades, evidence ${M.high[1]}+</span></div>
+      <div class="stat"><span class="k">From report</span><span class="v">${l.hops} hop${l.hops === 1 ? "" : "s"}</span><span class="t">${l.first.slice(0, 10)} to ${l.last.slice(0, 10)}</span></div>
+    </div>
+    <div>
+      <h3 style="font-size:14px;margin-bottom:6px">Where the money went</h3>
+      <div class="chart flow" id="flow"></div>
+      <p class="small" style="margin:4px 0 0">Band width is USDT. ${l.wallets.length} wallet${l.wallets.length > 1 ? "s" : ""} in this cluster${moved ? `; ${int(Math.round(moved))} USDT moved between them first` : ""}. Clustering evidence: ${esc([...new Set(l.wallets.map(w => w.evidence).filter(Boolean))].join(", ") || "single wallet")}.</p>
+    </div>
+    <div class="two">
+      <div>
+        <h3 style="font-size:14px;margin-bottom:6px">Matched trades</h3>
+        <div class="tbl-wrap" style="max-height:300px;overflow-y:auto"><table><thead><tr><th>USDT sent</th><th>Trader</th><th>USDT</th><th>TZS</th><th>Lag</th><th>Spread</th><th>Score</th></tr></thead><tbody>
+          ${l.links.map(r => `<tr><td>${r[0].slice(5)}</td><td>${esc(r[2])}</td><td>${fmt(r[3], 0)}</td><td>${int(r[5])}</td><td>${fmt(r[6], 0)}m</td><td>${fmt(r[7], 1)}%</td><td>${fmt(r[8], 2)}</td></tr>`).join("")}
+        </tbody></table></div>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin-bottom:6px">Matching fingerprint</h3>
+        <div class="chart" id="scatter"></div>
+        <p class="small" style="margin:4px 0 0">Minutes between the USDT transfer and the shilling payment, against the trader spread implied by the exchange rate. Grey: a sample of all ${int(M.links)} linked trades. Boxes: accepted windows.</p>
+      </div>
+    </div>`;
+  drawFlow(l);
+  drawScatter(l);
+}
+
+function drawFlow(l) {
+  const box = $("#flow");
+  const cols = [[...new Set(l.flow.in.map(x => x[0]))], l.wallets.map(w => w.id), [...new Set(l.flow.sold.map(x => x[1]))], [l.account]];
+  const rows = Math.max(...cols.map(c => c.length), 1);
+  const H = Math.max(180, 34 + rows * 28);
+  const [s, W] = svgFor(box, H);
+  const colX = [0, 1, 2, 3].map(i => 8 + i * (W - 16 - 110) / 3);
+  const titles = W < 560 ? ["Reported", "Cluster", "Traders", "Account"] : ["Reported wallets", "Suspect cluster", "P2P traders", "Mobile money"];
+  const tot = {};
+  const add = (k, v) => tot[k] = (tot[k] || 0) + v;
+  l.flow.in.forEach(([a, b, v]) => { add("o" + a, v); add("i" + b, v); });
+  l.flow.sold.forEach(([a, b, v]) => { add("o" + a, v); add("i" + b, v); });
+  l.flow.paid.forEach(([a, , v]) => { add("o" + a, v); add("i" + l.account, v); });
+  const maxV = Math.max(...Object.values(tot), 1), scale = v => Math.max(2, v / maxV * 34);
+  const pos = {};
+  cols.forEach((c, ci) => {
+    el("text", {x: colX[ci], y: 12, class: "col"}, s).textContent = titles[ci];
+    const gap = (H - 26) / c.length;
+    c.forEach((id, i) => {
+      const h = Math.max(12, scale(Math.max(tot["i" + id] || 0, tot["o" + id] || 0)));
+      const y = 26 + gap * i + (gap - h) / 2;
+      pos[id] = {x: colX[ci], y, h, oy: y, iy: y};
+      const color = ci === 0 ? "var(--bad)" : ci === 1 ? "var(--illicit)" : ci === 2 ? "var(--set2)" : "var(--accent)";
+      const r = el("rect", {x: colX[ci], y, width: 10, height: h, rx: 3, fill: color}, s);
+      const label = ci === 3 ? id : ci === 2 ? id : short(id);
+      el("text", {x: colX[ci] + 14, y: y + h / 2 + 3.5}, s).textContent = label;
+      r.addEventListener("mousemove", e => showTip(e, id, [["Role", titles[ci]], ["USDT in", int(Math.round(tot["i" + id] || 0))], ["USDT out", int(Math.round(tot["o" + id] || 0))]]));
+      r.addEventListener("mouseleave", hideTip);
+    });
+  });
+  const link = (a, b, v, title, rows) => {
+    if (!pos[a] || !pos[b]) return;
+    const w = scale(v), A = pos[a], B = pos[b];
+    const y1 = A.oy + w / 2, y2 = B.iy + w / 2;
+    A.oy += w; B.iy += w;
+    const x1 = A.x + 10, x2 = B.x, mx = (x1 + x2) / 2;
+    const p = el("path", {d: `M${x1},${y1}C${mx},${y1} ${mx},${y2} ${x2},${y2}`, fill: "none", stroke: "var(--illicit)", "stroke-opacity": .35, "stroke-width": w}, s);
+    p.addEventListener("mousemove", e => { p.setAttribute("stroke-opacity", .7); showTip(e, title, rows); });
+    p.addEventListener("mouseleave", () => { p.setAttribute("stroke-opacity", .35); hideTip(); });
+  };
+  l.flow.in.forEach(([a, b, v, n]) => link(a, b, v, "Victim funds into cluster", [["USDT", int(Math.round(v))], ["Transfers", n]]));
+  l.flow.sold.forEach(([a, b, v, n]) => link(a, b, v, `Sold to ${b}`, [["USDT", int(Math.round(v))], ["Trades", n]]));
+  l.flow.paid.forEach(([a, tzs, v, n]) => link(a, l.account, v, `${a} paid ${l.account}`, [["TZS", int(tzs)], ["Payments", n]]));
+}
+
+function drawScatter(l) {
+  const box = $("#scatter"), H = 250, m = {l: 40, r: 10, t: 10, b: 34};
+  const [s, W] = svgFor(box, H);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const X0 = -65, X1 = 50, Y0 = -1, Y1 = 5.5;
+  const x = v => m.l + (Math.max(X0, Math.min(X1, v)) - X0) / (X1 - X0) * iw;
+  const y = v => m.t + (1 - (Math.max(Y0, Math.min(Y1, v)) - Y0) / (Y1 - Y0)) * ih;
+  const g = el("g", {class: "axis"}, s);
+  [-60, -30, 0, 30].forEach(v => { el("line", {x1: x(v), x2: x(v), y1: m.t, y2: H - m.b, stroke: "var(--grid)"}, g); el("text", {x: x(v), y: H - m.b + 14, "text-anchor": "middle"}, g).textContent = v; });
+  [0, 2, 4].forEach(v => { el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, g); el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, g).textContent = v + "%"; });
+  const boxR = (w, label, color) => {
+    el("rect", {x: x(w[0]), y: y(M.fee_range[1]), width: x(w[1]) - x(w[0]), height: y(M.fee_range[0]) - y(M.fee_range[1]), fill: color, "fill-opacity": .06, stroke: color, "stroke-dasharray": "4 3", rx: 4}, s);
+    el("text", {x: x(w[0]) + 5, y: y(M.fee_range[1]) + 12, class: "axis-title", fill: color}, s).textContent = label;
+  };
+  boxR(M.buy_window, "buyers pay first", "var(--set2)");
+  boxR(M.sell_window, "sellers paid after", "var(--accent)");
+  D.scatter.forEach(([side, lag, fee]) => el("circle", {cx: x(lag), cy: y(fee), r: 1.6, fill: "var(--ink-3)", "fill-opacity": .35}, s));
+  l.links.forEach(r => {
+    const c = el("circle", {cx: x(r[6]), cy: y(r[7]), r: 4, fill: "var(--illicit)", stroke: "var(--bg)", "stroke-width": 1.2}, s);
+    c.addEventListener("mousemove", e => showTip(e, `${r[0]} · ${r[2]}`, [["USDT", fmt(r[3], 0)], ["TZS", int(r[5])], ["Lag", fmt(r[6], 1) + " min"], ["Spread", fmt(r[7], 2) + "%"], ["USD/TZS", fmt(r[9], 0)], ["Link score", fmt(r[8], 2)]]));
+    c.addEventListener("mouseleave", hideTip);
+  });
+  el("text", {x: m.l + iw / 2, y: H - 3, "text-anchor": "middle", class: "axis-title"}, s).textContent = "Payment time minus USDT time (minutes)";
+  el("text", {transform: `translate(10 ${m.t + ih / 2}) rotate(-90)`, "text-anchor": "middle", class: "axis-title"}, s).textContent = "Trader spread";
+}
+
+/* ---------- method ---------- */
+$("#method").innerHTML = [
+  ["Time window", `A seller is paid ${M.sell_window[0]} to ${M.sell_window[1]} minutes after sending USDT. A buyer pays ${-M.buy_window[0]} minutes before at most. Closer in time scores higher.`],
+  ["Amount after exchange rate", `Shillings divided by USDT times that day's USD/TZS rate must imply a trader spread of ${fmt(M.fee_range[0], 1)}% to ${fmt(M.fee_range[1], 1)}%. Spreads near 1.5% score highest.`],
+  ["Repetition", `Each trade and payment is used once. Scores add up per wallet cluster and account: High needs ${M.high[0]}+ trades and evidence ${M.high[1]}, Medium ${M.medium[0]}+ trades and ${M.medium[1]}.`],
+].map(([h, p]) => `<div><h3>${h}</h3><p>${p}</p></div>`).join("");
+
+/* ---------- stress ---------- */
+function renderStress() {
+  if (!D.stress.length) { $("#stress").innerHTML = `<p class="small">Run <span class="mono">python run_phase2.py --stress</span> to add the stress test.</p>`; return; }
+  const bar = (v, color) => `<div><span class="track"><i style="width:${(v || 0) * 100}%;background:${color}"></i></span><span>${pct(v)}</span></div>`;
+  $("#stress").innerHTML = D.stress.map(r => `
+    <div class="bar-row">
+      <div class="lab">${esc(r.scenario)}<small>${esc(r.tests)}</small></div>
+      <div class="bars">${bar(r.link_recall, "var(--accent)")}${bar(r.owner_recall_high, "var(--set2)")}${bar(r.high_precision, "var(--good)")}</div>
+    </div>`).join("");
+  $("#stress-table").innerHTML = `<table><thead><tr><th>Scenario</th><th>Tests</th><th>Trader recall</th><th>Link precision</th><th>Link recall</th><th>High pairs</th><th>High precision</th><th>Owners found (High)</th><th>Mule accounts found</th><th>Wrong leads</th></tr></thead><tbody>` +
+    D.stress.map(r => `<tr><td>${esc(r.scenario)}</td><td>${esc(r.tests)}</td><td>${fmt(r.trader_recall)}</td><td>${fmt(r.link_precision)}</td><td>${fmt(r.link_recall)}</td><td>${r.high_pairs}</td><td>${fmt(r.high_precision)}</td><td>${pct(r.owner_recall_high)}</td><td>${esc(r.mule_accounts_found)}</td><td>${r.wrong_leads}</td></tr>`).join("") + `</tbody></table>`;
+}
+renderStress();
+
+renderLead();
+let rt, lastW = $("#app").clientWidth;
+new ResizeObserver(() => { const w = $("#app").clientWidth; if (w === lastW) return; lastW = w; clearTimeout(rt); rt = setTimeout(renderLead, 120); }).observe($("#app"));
+</script>

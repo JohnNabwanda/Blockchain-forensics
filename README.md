@@ -114,8 +114,40 @@ belongs in the report. Do not tune it away.
 
 All tunable values (split, precision target, band levels) are in `src/config.py`.
 
+## Phase 2: TRON/USDT wallets and mobile-money attribution (synthetic data)
+
+Implements concept note Section 12 on a **generated** world: users, P2P traders, two exchanges
+and a scam ring whose mules sell USDT to traders and receive shillings on M-Pesa, Tigo Pesa,
+Airtel Money or HaloPesa. No real mobile-money or P2P records are used.
+
+```bash
+python run_phase2.py --stress        # generate the world, analyse it, stress-test (about 2 minutes)
+python build_phase2_dashboard.py     # writes outputs/phase2/dashboard_phase2.html
+```
+
+The pipeline, in `src/phase2/`:
+
+1. **Services and traders** (`wallets.py`): finds exchange deposit addresses (forward everything
+   to one hot wallet within hours) and P2P-trader wallets (many distinct counterparties in both
+   directions, active most days).
+2. **Wallet clustering**: deposit-address reuse and TRX activation funding.
+3. **Off-chain matching** (`matching.py`): each trade with a known trader is matched to a payment on
+   the trader's mobile-money statement by time window and by the trader spread implied by that
+   day's USD/TZS rate. Evidence adds up per wallet cluster and account; High needs repetition.
+4. **Cash-out leads**: funds are traced two hops from victim-reported wallets, stopping at
+   exchanges and traders, and joined to the attribution pairs.
+5. **Evaluation** (`evaluate.py`) is the only code that reads the ground-truth files.
+
+The stress test regenerates the world with more decoy payments, slower settlement and wider
+spreads. Settlement delay and spread matter most, so both windows must be calibrated on real
+statements before any pilot. `trader_directory.csv` stands in for trader statements, which in
+reality need lawful requests to operators. Every link is a lead, never proof of identity, and a
+linked account may belong to a relative or agent rather than the wallet owner.
+
+Settings are in the Phase 2 block of `src/config.py`.
+
 ## Scope reminders
 
-- The model classifies **transactions**, not wallets. Wallet clustering comes in Phase 2 (TRON).
+- The Phase 1 model classifies **transactions**, not wallets. Wallet clustering is in Phase 2 (TRON).
 - Elliptic is anonymised Bitcoin data and says nothing about Tanzania.
 - Scores are leads for human review, never conclusions about any person.

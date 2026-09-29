@@ -1,0 +1,628 @@
+<title>Elliptic Detection Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f4f6f9; --surface:#ffffff; --surface-2:#f8f9fb;
+  --ink:#10151d; --ink-2:#4a5363; --ink-3:#737d8d;
+  --line:#e0e4eb; --grid:#edf0f4; --accent:#1c5cab; --accent-soft:#e6eefa;
+  --set1:#86b6ef; --set2:#2a78d6; --set3:#104281;
+  --illicit:#eb6834; --licit:#a3abb8;
+  --good:#0ca30c; --good-ink:#0a6e0a; --good-bg:#e7f5e7;
+  --bad:#d03b3b; --bad-ink:#a92b2b; --bad-bg:#fbeaea;
+  --warn:#fab219; --warn-bg:#fdf3dc; --warn-ink:#7a5200;
+  --shadow:0 1px 2px rgba(16,21,29,.06),0 2px 8px rgba(16,21,29,.04);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0d1015; --surface:#151920; --surface-2:#1b2029;
+    --ink:#eef1f5; --ink-2:#b3bbca; --ink-3:#848d9c;
+    --line:#29303b; --grid:#1f252e; --accent:#6da7ec; --accent-soft:#1a2a40;
+    --set1:#1c5cab; --set2:#3987e5; --set3:#9ec5f4;
+    --illicit:#d95926; --licit:#5d6675;
+    --good-ink:#5fd35f; --good-bg:#132a15; --bad-ink:#f08a8a; --bad-bg:#341819;
+    --warn-bg:#33280f; --warn-ink:#fac455;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0d1015; --surface:#151920; --surface-2:#1b2029;
+  --ink:#eef1f5; --ink-2:#b3bbca; --ink-3:#848d9c;
+  --line:#29303b; --grid:#1f252e; --accent:#6da7ec; --accent-soft:#1a2a40;
+  --set1:#1c5cab; --set2:#3987e5; --set3:#9ec5f4;
+  --illicit:#d95926; --licit:#5d6675;
+  --good-ink:#5fd35f; --good-bg:#132a15; --bad-ink:#f08a8a; --bad-bg:#341819;
+  --warn-bg:#33280f; --warn-ink:#fac455;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:28px 56px;display:grid;gap:22px}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:26px;font-weight:600;letter-spacing:-.01em}
+h2{font-size:17px;font-weight:600}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+.sub{color:var(--ink-2);max-width:72ch}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:grid;gap:8px}
+.runline{display:flex;flex-wrap:wrap;gap:6px 14px;color:var(--ink-3);font-size:12.5px}
+.runline b{color:var(--ink-2);font-weight:500}
+.banner{border:1px solid var(--warn);background:var(--warn-bg);color:var(--warn-ink);border-radius:8px;padding:10px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;box-shadow:var(--shadow);min-width:0}
+.panel-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:12px}
+.panel-head p{margin:2px 0 0;color:var(--ink-2);font-size:13px;max-width:70ch}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.grid-2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:22px}
+.grid-2.even{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:900px){.grid-3,.grid-2,.grid-2.even{grid-template-columns:1fr}}
+
+/* verdict cards */
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:grid;gap:8px;box-shadow:var(--shadow);align-content:start}
+.verdict .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.verdict .h{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.verdict h3{font-size:15px;font-weight:600}
+.verdict .big{font-family:var(--mono);font-size:28px;font-weight:500;letter-spacing:-.02em;line-height:1.1}
+.verdict .big small{font-size:13px;color:var(--ink-3);font-weight:400;margin-left:6px}
+.verdict p{margin:0;color:var(--ink-2);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px 2px 8px;white-space:nowrap}
+.pill.good{background:var(--good-bg);color:var(--good-ink)}
+.pill.bad{background:var(--bad-bg);color:var(--bad-ink)}
+.pill.neutral{background:var(--accent-soft);color:var(--accent)}
+.pill svg{width:12px;height:12px}
+
+/* threshold explorer */
+.slider-row{display:grid;gap:6px;margin-bottom:16px}
+.slider-row label{font-size:12.5px;color:var(--ink-2);display:flex;justify-content:space-between;gap:10px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.btn{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.seg button:focus-visible,.case:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface-2);display:grid;gap:2px}
+.kpi .k{font-size:12px;color:var(--ink-2)}
+.kpi .v{font-family:var(--mono);font-size:22px;font-weight:500;font-variant-numeric:tabular-nums}
+.kpi .t{font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.meter{height:4px;border-radius:2px;background:var(--grid);position:relative;margin-top:4px}
+.meter i{position:absolute;inset:0 auto 0 0;border-radius:2px;background:var(--accent)}
+.meter b{position:absolute;top:-3px;width:2px;height:10px;background:var(--ink-2)}
+.confusion{margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+
+/* charts */
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.axis text,.tick{fill:var(--ink-3);font-size:11px;font-family:var(--mono)}
+.axis-title{fill:var(--ink-2);font-size:11.5px;font-family:var(--sans)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--ink-2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.sw.box{height:10px;width:10px;border-radius:2px}
+.seg{display:inline-flex;flex-wrap:wrap;max-width:100%;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{font:inherit;font-size:12.5px;border:0;background:var(--surface);color:var(--ink-2);padding:5px 11px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+#tip{position:fixed;z-index:10;pointer-events:none;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:7px;padding:8px 10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:140px;max-width:260px}
+#tip .tt{font-weight:600;margin-bottom:4px}
+#tip .row{display:flex;justify-content:space-between;gap:14px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+#tip .row span:first-child{font-family:var(--sans);color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+
+/* table */
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin-top:10px}
+.tbl-wrap{overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{text-align:right;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{font-weight:600;color:var(--ink-2);font-size:11.5px}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+td:first-child,td:nth-child(2){font-family:var(--sans)}
+tr.sel td{background:var(--accent-soft)}
+
+/* cases */
+.cases{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:18px}
+@media (max-width:900px){.cases{grid-template-columns:1fr}}
+.case-list{display:grid;gap:4px;max-height:560px;overflow-y:auto;padding-right:4px;align-content:start}
+.case{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;text-align:left;font:inherit;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ink);padding:7px 9px;cursor:pointer}
+.case:hover{background:var(--surface-2)}
+.case[aria-selected=true]{background:var(--accent-soft);border-color:var(--accent)}
+.case .id{font-family:var(--mono);font-size:12.5px}
+.case .st{font-size:11.5px;color:var(--ink-3)}
+.scorebar{width:54px;height:6px;border-radius:3px;background:var(--grid);overflow:hidden}
+.scorebar i{display:block;height:100%;background:var(--bad)}
+.case .sc{font-family:var(--mono);font-size:12px;color:var(--ink-2);min-width:42px;text-align:right}
+.detail{display:grid;gap:14px;align-content:start}
+.detail-head{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+.detail-head .mono{font-size:18px;font-weight:500}
+.facts{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:1px 9px;color:var(--ink-2);background:var(--surface-2)}
+.chip b{color:var(--ink);font-weight:600}
+.reasons{display:grid;gap:7px}
+.reason{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:10px;align-items:center;font-size:12.5px}
+.reason .rb{height:8px;border-radius:0 3px 3px 0;background:var(--illicit)}
+.detail-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:700px){.detail-cols{grid-template-columns:1fr}}
+.small{font-size:12px;color:var(--ink-3)}
+footer{color:var(--ink-3);font-size:12.5px;max-width:80ch}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="eyebrow">Blockchain forensics · proof of concept</div>
+    <h1>Illicit transaction detection on Elliptic Bitcoin data</h1>
+    <div class="runline" id="runline"></div>
+  </header>
+  <div class="banner" id="synthetic" hidden>
+    <strong>Synthetic data.</strong>
+    <span>These figures come from generated test data and only show that the software works. Run the pipeline on the real Elliptic files to get reportable results.</span>
+  </div>
+
+  <section class="grid-3" id="verdicts" aria-label="Hypothesis results"></section>
+
+  <section class="panel" aria-labelledby="thr-h">
+    <div class="panel-head">
+      <div>
+        <h2 id="thr-h">Operating threshold and false positives</h2>
+        <p>Move the threshold to see how many cases analysts would review and how many would be false flags. The marked position is the threshold chosen on validation data to reach the precision target.</p>
+      </div>
+      <button class="btn" id="reset" type="button">Reset to chosen threshold</button>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="slider-row">
+          <label for="thr"><span>Threshold (risk score)</span><span class="mono" id="thr-val"></span></label>
+          <input type="range" id="thr" min="-9" max="9" step="0.01">
+        </div>
+        <div class="kpis" id="kpis"></div>
+        <div class="confusion" id="confusion"></div>
+      </div>
+      <div>
+        <div class="chart" id="hist"></div>
+        <div class="legend">
+          <span><i class="sw box" style="background:var(--illicit)"></i>Illicit (share of illicit transactions)</span>
+          <span><i class="sw box" style="background:var(--licit)"></i>Licit (share of licit transactions)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-2 even">
+    <div class="panel" aria-labelledby="pr-h">
+      <div class="panel-head"><div>
+        <h2 id="pr-h">Does graph information help?</h2>
+        <p id="pr-sub">Precision against recall on the test period for the three feature sets. Curves further up and right are better.</p>
+      </div></div>
+      <div class="chart" id="pr"></div>
+      <div class="legend" id="pr-legend"></div>
+    </div>
+    <div class="panel" aria-labelledby="mc-h">
+      <div class="panel-head">
+        <div><h2 id="mc-h">Models and feature sets</h2><p>Test-period score for the illicit class.</p></div>
+        <div class="seg" id="metric" role="group" aria-label="Metric"></div>
+      </div>
+      <div class="chart" id="bars"></div>
+      <div class="legend" id="bar-legend"></div>
+      <details><summary>Show all results as a table</summary><div class="tbl-wrap" id="table"></div></details>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="ts-h">
+    <div class="panel-head"><div>
+      <h2 id="ts-h">Stability over time</h2>
+      <p>F1 of the selected model for each test time step, with the number of illicit transactions in that step below. A model that looks good overall can still fail when criminal behaviour changes.</p>
+    </div></div>
+    <div class="chart" id="f1"></div>
+    <div class="chart" id="counts"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="cs-h">
+    <div class="panel-head"><div>
+      <h2 id="cs-h">Flagged cases</h2>
+      <p>The highest-scoring transactions in the High band. Each one shows why it was flagged and where it sits in the flow of funds. These are leads for an analyst to check, not findings.</p>
+    </div></div>
+    <div class="cases">
+      <div class="case-list" id="case-list" role="listbox" aria-label="Flagged transactions"></div>
+      <div class="detail" id="detail"></div>
+    </div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+const D = /*__DATA__*/null;
+const M = D.meta;
+const $ = s => document.querySelector(s);
+const fmt = (v, d = 3) => v == null || isNaN(v) ? "–" : Number(v).toFixed(d);
+const pct = v => isNaN(v) ? "–" : (100 * v).toFixed(1) + "%";
+const int = v => Number(v).toLocaleString("en-US");
+const NS = "http://www.w3.org/2000/svg";
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const SETS = D.curves.map(c => c.name);
+const SET_LABEL = {"Set1_local": "Transaction features only", "Set2_local+agg": "+ Elliptic neighbour summaries", "Set3_local+agg+graph": "+ NetworkX graph features"};
+const SET_VAR = i => `var(--set${i + 1})`;
+
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgFor(container, h) {
+  container.innerHTML = "";
+  const w = Math.max(container.clientWidth, 280);
+  const s = el("svg", {viewBox: `0 0 ${w} ${h}`, width: w, height: h, role: "img"});
+  container.appendChild(s);
+  return [s, w];
+}
+const ICON_OK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_NO = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+/* ---------- tooltip ---------- */
+const tip = $("#tip");
+function showTip(e, title, rows) {
+  tip.innerHTML = `<div class="tt">${title}</div>` + rows.map(([k, v, c]) =>
+    `<div class="row"><span>${c ? `<i class="sw box" style="background:${c}"></i>` : ""}${k}</span><span>${v}</span></div>`).join("");
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = x + "px"; tip.style.top = y + "px";
+}
+const hideTip = () => tip.hidden = true;
+
+/* ---------- header ---------- */
+$("#runline").innerHTML = [
+  ["Model", `${M.model} · ${SET_LABEL[M.feature_set] || M.feature_set}`],
+  ["Version", M.model_version],
+  ["Split", `train ${M.split.train.join("–")} · validate ${M.split.val.join("–")} · test ${M.split.test.join("–")}`],
+  ["Data", `${int(M.dataset.transactions)} transactions · ${int(M.dataset.edges)} payment flows`],
+  ["Explanations", M.explanation_method],
+].map(([k, v]) => `<span>${k} <b>${v}</b></span>`).join("");
+$("#synthetic").hidden = !M.synthetic_data;
+
+/* ---------- verdicts ---------- */
+const best = D.results.find(r => r.model === M.model && r.feature_set === M.feature_set);
+const sameModel = Object.fromEntries(D.results.filter(r => r.model === M.model).map(r => [r.feature_set, r]));
+const s1 = sameModel["Set1_local"].test_pr_auc;
+const sBest = Math.max(sameModel["Set2_local+agg"].test_pr_auc, sameModel["Set3_local+agg+graph"].test_pr_auc);
+const h1 = best.test_precision >= M.precision_target;
+const h2 = sBest > s1;
+const nExpl = D.cases.filter(c => c.reasons.length).length;
+const verdicts = [
+  {h: "H1", t: "Detection works", ok: h1, big: fmt(best.test_precision), unit: `precision · target ${M.precision_target.toFixed(2)}`,
+   p: `Recall ${fmt(best.test_recall)} against a target of ${M.recall_target.toFixed(2)}, at the threshold chosen on validation data.`},
+  {h: "H2", t: "Graph information helps", ok: h2, big: `+${fmt(sBest - s1)}`, unit: "PR-AUC",
+   p: `PR-AUC rises from ${fmt(s1)} with transaction features only to ${fmt(sBest)} with graph information added.`},
+  {h: "H3", t: "Results are explainable", ok: null, big: `${D.cases.length}`, unit: "cases with reasons",
+   p: `Every case below lists its main contributing features and its payment neighbourhood. Clarity is judged by analysts in the demo.`},
+];
+$("#verdicts").innerHTML = verdicts.map(v => `
+  <article class="verdict">
+    <div class="top"><span class="h">${v.h}</span>${v.ok === null ? `<span class="pill neutral">For analyst review</span>` :
+      v.ok ? `<span class="pill good">${ICON_OK}Supported</span>` : `<span class="pill bad">${ICON_NO}Not supported</span>`}</div>
+    <h3>${v.t}</h3>
+    <div class="big">${v.big}<small>${v.unit}</small></div>
+    <p>${v.p}</p>
+  </article>`).join("");
+
+/* ---------- threshold explorer ---------- */
+const logit = p => Math.log(Math.max(p, 1e-6) / Math.max(1 - p, 1e-6));
+const sigm = z => 1 / (1 + Math.exp(-z));
+const Z_MIN = -9, Z_MAX = 9;
+const nIll = D.labels.reduce((a, b) => a + b, 0), nLic = D.labels.length - nIll;
+const slider = $("#thr");
+slider.value = Math.min(Z_MAX, Math.max(Z_MIN, logit(M.threshold)));
+
+function confusion(thr) {
+  let tp = 0, fp = 0;
+  for (let i = 0; i < D.scores.length; i++) if (D.scores[i] >= thr) D.labels[i] ? tp++ : fp++;
+  const fn = nIll - tp;
+  return {tp, fp, fn, tn: nLic - fp, flagged: tp + fp,
+          precision: tp + fp ? tp / (tp + fp) : NaN, recall: nIll ? tp / nIll : NaN};
+}
+function kpi(k, v, t, frac, target) {
+  return `<div class="kpi"><span class="k">${k}</span><span class="v">${v}</span>
+    ${frac != null ? `<div class="meter"><i style="width:${Math.max(0, Math.min(1, frac)) * 100}%"></i>${target != null ? `<b style="left:${target * 100}%"></b>` : ""}</div>` : ""}
+    <span class="t">${t}</span></div>`;
+}
+function updateThreshold() {
+  const thr = sigm(+slider.value);
+  const c = confusion(thr);
+  $("#thr-val").textContent = thr < 0.001 ? thr.toExponential(2) : thr.toFixed(4);
+  const pOk = c.precision >= M.precision_target, rOk = c.recall >= M.recall_target;
+  $("#kpis").innerHTML =
+    kpi("Precision", fmt(c.precision), `${pOk ? "meets" : "below"} target ${M.precision_target.toFixed(2)}`, c.precision, M.precision_target) +
+    kpi("Recall", fmt(c.recall), `${rOk ? "meets" : "below"} target ${M.recall_target.toFixed(2)}`, c.recall, M.recall_target) +
+    kpi("Cases for review", int(c.flagged), `${pct(c.flagged / D.scores.length)} of labelled test transactions`) +
+    kpi("False flags", int(c.fp), c.flagged ? `${fmt(1000 * c.fp / c.flagged, 0)} per 1,000 flags` : "no flags");
+  $("#confusion").innerHTML = `Of ${int(nIll)} illicit test transactions, <b class="num">${int(c.tp)}</b> are flagged and <b class="num">${int(c.fn)}</b> are missed. Of ${int(nLic)} licit ones, <b class="num">${int(c.fp)}</b> would be wrongly sent to an analyst.`;
+  drawHist(thr);
+  drawPR(c);
+}
+slider.addEventListener("input", updateThreshold);
+$("#reset").addEventListener("click", () => { slider.value = logit(M.threshold); updateThreshold(); });
+
+/* score distribution on a logit axis, illicit above / licit below */
+const NB = 36;
+const bins = Array.from({length: NB}, () => [0, 0]);
+D.scores.forEach((s, i) => {
+  const b = Math.min(NB - 1, Math.max(0, Math.floor((logit(s) - Z_MIN) / (Z_MAX - Z_MIN) * NB)));
+  bins[b][D.labels[i] ? 0 : 1]++;
+});
+const share = bins.map(([a, b]) => [a / Math.max(nIll, 1), b / Math.max(nLic, 1)]);
+const maxShare = Math.max(...share.flat(), 0.01);
+const TICKS_P = [0.0001, 0.001, 0.01, 0.1, 0.5, 0.9, 0.99, 0.999, 0.9999];
+
+function drawHist(thr) {
+  const box = $("#hist");
+  const H = 250, m = {l: 44, r: 10, t: 14, b: 38};
+  const [s, W] = svgFor(box, H);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, mid = m.t + ih / 2;
+  const x = z => m.l + (z - Z_MIN) / (Z_MAX - Z_MIN) * iw;
+  const y = v => v / maxShare * (ih / 2 - 4);
+  const g = el("g", {class: "axis"}, s);
+  [maxShare, maxShare / 2].forEach(v => {
+    [mid - y(v), mid + y(v)].forEach(yy => el("line", {x1: m.l, x2: W - m.r, y1: yy, y2: yy, stroke: "var(--grid)"}, g));
+    el("text", {x: m.l - 6, y: mid - y(v) + 4, "text-anchor": "end"}, g).textContent = Math.round(v * 100) + "%";
+    el("text", {x: m.l - 6, y: mid + y(v) + 4, "text-anchor": "end"}, g).textContent = Math.round(v * 100) + "%";
+  });
+  const bw = iw / NB;
+  share.forEach(([a, b], i) => {
+    const x0 = m.l + i * bw + 1, w = Math.max(bw - 2, 1);
+    if (a > 0) el("rect", {x: x0, y: mid - y(a) - 1, width: w, height: Math.max(y(a), 1), rx: 2, fill: "var(--illicit)"}, s);
+    if (b > 0) el("rect", {x: x0, y: mid + 1, width: w, height: Math.max(y(b), 1), rx: 2, fill: "var(--licit)"}, s);
+    const hit = el("rect", {x: m.l + i * bw, y: m.t, width: bw, height: ih, fill: "transparent"}, s);
+    const lo = sigm(Z_MIN + i * (Z_MAX - Z_MIN) / NB), hi = sigm(Z_MIN + (i + 1) * (Z_MAX - Z_MIN) / NB);
+    hit.addEventListener("mousemove", e => showTip(e, `Score ${lo < .001 ? lo.toExponential(1) : lo.toFixed(3)} – ${hi > .999 ? "1" : hi.toFixed(3)}`,
+      [["Illicit", `${bins[i][0]} (${pct(a)})`, "var(--illicit)"], ["Licit", `${bins[i][1]} (${pct(b)})`, "var(--licit)"]]));
+    hit.addEventListener("mouseleave", hideTip);
+  });
+  el("line", {x1: m.l, x2: W - m.r, y1: mid, y2: mid, stroke: "var(--ink-3)", "stroke-width": 1}, s);
+  (W < 560 ? [0.001, 0.1, 0.5, 0.9, 0.999] : TICKS_P).forEach(p => {
+    const xx = x(logit(p));
+    el("line", {x1: xx, x2: xx, y1: H - m.b, y2: H - m.b + 4, stroke: "var(--ink-3)"}, g);
+    el("text", {x: xx, y: H - m.b + 16, "text-anchor": "middle"}, g).textContent = p;
+  });
+  el("text", {x: m.l + iw / 2, y: H - 4, "text-anchor": "middle", class: "axis-title"}, s).textContent = "Risk score (log-odds scale)";
+  const tx = x(Math.min(Z_MAX, Math.max(Z_MIN, logit(thr))));
+  el("rect", {x: tx, y: m.t, width: W - m.r - tx, height: ih, fill: "var(--accent)", opacity: 0.06}, s);
+  el("line", {x1: tx, x2: tx, y1: m.t - 4, y2: H - m.b, stroke: "var(--accent)", "stroke-width": 2}, s);
+  el("text", {x: Math.min(tx + 6, W - 70), y: m.t + 8, class: "axis-title", fill: "var(--accent)"}, s).textContent = "flagged →";
+}
+
+/* ---------- PR curves ---------- */
+$("#pr-legend").innerHTML = D.curves.map((c, i) =>
+  `<span><i class="sw" style="background:${SET_VAR(i)}"></i>${SET_LABEL[c.name] || c.name} <b class="num">${fmt(c.pr_auc)}</b></span>`).join("") +
+  `<span><i class="sw" style="background:var(--ink-3);height:1px"></i>Precision target</span>`;
+$("#pr-sub").textContent += ` Model: ${M.model}. PR-AUC in the legend.`;
+function drawPR(c) {
+  const box = $("#pr");
+  const H = 300, m = {l: 44, r: 14, t: 12, b: 38};
+  const [s, W] = svgFor(box, H);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = v => m.l + v * iw, y = v => m.t + (1 - v) * ih;
+  const g = el("g", {class: "axis"}, s);
+  [0, .25, .5, .75, 1].forEach(v => {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, g);
+    el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, g).textContent = v.toFixed(2);
+    el("text", {x: x(v), y: H - m.b + 16, "text-anchor": "middle"}, g).textContent = v.toFixed(2);
+  });
+  el("line", {x1: m.l, x2: W - m.r, y1: y(M.precision_target), y2: y(M.precision_target), stroke: "var(--ink-3)", "stroke-dasharray": "4 4"}, s);
+  el("text", {x: m.l + 6, y: y(M.precision_target) - 5, class: "axis-title"}, s).textContent = `precision target ${M.precision_target.toFixed(2)}`;
+  D.curves.forEach((cv, i) => {
+    const d = cv.points.map(([r, p], j) => `${j ? "L" : "M"}${x(r).toFixed(1)},${y(p).toFixed(1)}`).join("");
+    el("path", {d, fill: "none", stroke: SET_VAR(i), "stroke-width": cv.name === M.feature_set ? 2.5 : 2, "stroke-linejoin": "round"}, s);
+  });
+  el("text", {x: m.l + iw / 2, y: H - 4, "text-anchor": "middle", class: "axis-title"}, s).textContent = "Recall (share of illicit found)";
+  el("text", {transform: `translate(11 ${m.t + ih / 2}) rotate(-90)`, "text-anchor": "middle", class: "axis-title"}, s).textContent = "Precision";
+  if (c && !isNaN(c.precision)) {
+    const i = SETS.indexOf(M.feature_set);
+    el("circle", {cx: x(c.recall), cy: y(c.precision), r: 6, fill: SET_VAR(Math.max(i, 0)), stroke: "var(--surface)", "stroke-width": 2}, s);
+    el("text", {x: Math.min(x(c.recall) + 9, W - 110), y: y(c.precision) + 16, class: "axis-title"}, s).textContent = "current threshold";
+  }
+  const cross = el("line", {y1: m.t, y2: H - m.b, stroke: "var(--ink-3)", "stroke-width": 1, opacity: 0}, s);
+  const hit = el("rect", {x: m.l, y: m.t, width: iw, height: ih, fill: "transparent"}, s);
+  hit.addEventListener("mousemove", e => {
+    const r = s.getBoundingClientRect();
+    const rec = Math.max(0, Math.min(1, ((e.clientX - r.left) * (W / r.width) - m.l) / iw));
+    cross.setAttribute("x1", x(rec)); cross.setAttribute("x2", x(rec)); cross.setAttribute("opacity", .5);
+    const rows = D.curves.map((cv, i) => {
+      let best = null;
+      for (const [rr, pp] of cv.points) if (rr >= rec - 1e-9 && (best === null || pp > best)) best = pp;
+      return [SET_LABEL[cv.name] || cv.name, fmt(best), SET_VAR(i)];
+    });
+    showTip(e, `Precision at recall ≥ ${rec.toFixed(2)}`, rows);
+  });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+}
+
+/* ---------- model comparison ---------- */
+const METRICS = [["test_pr_auc", "PR-AUC"], ["test_f1", "F1"], ["test_precision", "Precision"], ["test_recall", "Recall"]];
+let metric = "test_pr_auc";
+$("#metric").innerHTML = METRICS.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === metric}">${l}</button>`).join("");
+$("#metric").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  metric = b.dataset.k;
+  document.querySelectorAll("#metric button").forEach(x => x.setAttribute("aria-pressed", x.dataset.k === metric));
+  drawBars();
+});
+$("#bar-legend").innerHTML = SETS.map((n, i) => `<span><i class="sw box" style="background:${SET_VAR(i)}"></i>${SET_LABEL[n] || n}</span>`).join("");
+const MODELS = [...new Set(D.results.map(r => r.model))];
+const modelLabel = m => m.replace("_sklearn_fallback", " (fallback)").replace("LogisticRegression", "Logistic Regression").replace("RandomForest", "Random Forest");
+function drawBars() {
+  const box = $("#bars");
+  const H = 300, m = {l: 40, r: 8, t: 16, b: 40};
+  const [s, W] = svgFor(box, H);
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const y = v => m.t + (1 - v) * ih;
+  const g = el("g", {class: "axis"}, s);
+  [0, .25, .5, .75, 1].forEach(v => {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, g);
+    el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, g).textContent = v.toFixed(2);
+  });
+  const gw = iw / MODELS.length, inner = Math.min(gw * 0.72, 190), bw = (inner - 2 * (SETS.length - 1)) / SETS.length;
+  MODELS.forEach((mo, gi) => {
+    const x0 = m.l + gi * gw + (gw - inner) / 2;
+    SETS.forEach((st, si) => {
+      const r = D.results.find(q => q.model === mo && q.feature_set === st);
+      if (!r) return;
+      const v = r[metric], bx = x0 + si * (bw + 2), top = y(v), h = y(0) - top;
+      const rad = Math.min(4, bw / 2, h);
+      el("path", {d: `M${bx},${y(0)}V${top + rad}Q${bx},${top} ${bx + rad},${top}H${bx + bw - rad}Q${bx + bw},${top} ${bx + bw},${top + rad}V${y(0)}Z`,
+        fill: SET_VAR(si)}, s);
+      if (mo === M.model && st === M.feature_set)
+        el("text", {x: bx + bw / 2, y: top - 5, "text-anchor": "middle", class: "axis-title"}, s).textContent = "selected";
+      const hit = el("rect", {x: bx - 1, y: m.t, width: bw + 2, height: ih, fill: "transparent"}, s);
+      hit.addEventListener("mousemove", e => showTip(e, `${modelLabel(mo)}`, [
+        [SET_LABEL[st] || st, "", SET_VAR(si)],
+        ["PR-AUC", fmt(r.test_pr_auc)], ["F1", fmt(r.test_f1)], ["Precision", fmt(r.test_precision)], ["Recall", fmt(r.test_recall)],
+        ["Features", r.n_features]]));
+      hit.addEventListener("mouseleave", hideTip);
+    });
+    el("text", {x: m.l + gi * gw + gw / 2, y: H - m.b + 18, "text-anchor": "middle", class: "axis-title"}, s).textContent = modelLabel(mo);
+  });
+  el("line", {x1: m.l, x2: W - m.r, y1: y(0), y2: y(0), stroke: "var(--ink-3)"}, s);
+}
+$("#table").innerHTML = `<table><thead><tr><th>Model</th><th>Feature set</th><th>Features</th><th>Threshold</th><th>Precision</th><th>Recall</th><th>F1</th><th>PR-AUC</th><th>ROC-AUC</th><th>Validation PR-AUC</th><th>Flagged</th><th>False flags</th><th>Missed</th></tr></thead><tbody>` +
+  D.results.map(r => `<tr class="${r.model === M.model && r.feature_set === M.feature_set ? "sel" : ""}"><td>${modelLabel(r.model)}</td><td>${SET_LABEL[r.feature_set] || r.feature_set}</td><td>${r.n_features}</td><td>${fmt(r.threshold, 4)}</td><td>${fmt(r.test_precision)}</td><td>${fmt(r.test_recall)}</td><td>${fmt(r.test_f1)}</td><td>${fmt(r.test_pr_auc)}</td><td>${fmt(r.test_roc_auc)}</td><td>${fmt(r.val_pr_auc)}</td><td>${int(r.test_flagged)}</td><td>${int(r.test_fp)}</td><td>${int(r.test_fn)}</td></tr>`).join("") +
+  `</tbody></table>`;
+
+/* ---------- over time ---------- */
+function drawTime() {
+  const st = D.steps;
+  const steps = st.map(d => d.time_step), lo = Math.min(...steps), hi = Math.max(...steps);
+  const m = {l: 44, r: 14};
+  const box = $("#f1"), H = 220, t = 14, b = 10;
+  const [s, W] = svgFor(box, H);
+  const iw = W - m.l - m.r, ih = H - t - b;
+  const x = v => m.l + (hi === lo ? iw / 2 : (v - lo) / (hi - lo) * iw);
+  const y = v => t + (1 - v) * ih;
+  const g = el("g", {class: "axis"}, s);
+  [0, .25, .5, .75, 1].forEach(v => {
+    el("line", {x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: "var(--grid)"}, g);
+    el("text", {x: m.l - 6, y: y(v) + 4, "text-anchor": "end"}, g).textContent = v.toFixed(2);
+  });
+  el("text", {transform: `translate(11 ${t + ih / 2}) rotate(-90)`, "text-anchor": "middle", class: "axis-title"}, s).textContent = "F1 (illicit)";
+  const shift = !M.synthetic_data && lo <= 43 && hi >= 43;
+  if (shift) {
+    el("line", {x1: x(43), x2: x(43), y1: t, y2: t + ih, stroke: "var(--ink-3)", "stroke-dasharray": "3 4"}, s);
+    el("text", {x: x(43) + 6, y: t + 12, class: "axis-title"}, s).textContent = "dark market closure (~step 43)";
+  }
+  el("path", {d: st.map((d, i) => `${i ? "L" : "M"}${x(d.time_step)},${y(d.f1)}`).join(""), fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round"}, s);
+  const worst = st.reduce((a, d) => d.f1 < a.f1 ? d : a, st[0]);
+  st.forEach(d => el("circle", {cx: x(d.time_step), cy: y(d.f1), r: d === worst ? 5 : 3, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2}, s));
+  el("text", {x: Math.min(x(worst.time_step) + 8, W - 90), y: y(worst.f1) + 16, class: "axis-title"}, s).textContent = `lowest ${fmt(worst.f1, 2)}`;
+  const cross = el("line", {y1: t, y2: t + ih, stroke: "var(--ink-3)", opacity: 0}, s);
+  const hit = el("rect", {x: m.l - 6, y: t, width: iw + 12, height: ih, fill: "transparent"}, s);
+  const near = e => { const r = s.getBoundingClientRect(); const px = (e.clientX - r.left) * (W / r.width);
+    return st.reduce((a, d) => Math.abs(x(d.time_step) - px) < Math.abs(x(a.time_step) - px) ? d : a, st[0]); };
+  hit.addEventListener("mousemove", e => { const d = near(e);
+    cross.setAttribute("x1", x(d.time_step)); cross.setAttribute("x2", x(d.time_step)); cross.setAttribute("opacity", .5);
+    showTip(e, `Time step ${d.time_step}`, [["F1", fmt(d.f1)], ["Precision", fmt(d.precision)], ["Recall", fmt(d.recall)], ["Illicit in step", d.illicit]]); });
+  hit.addEventListener("mouseleave", () => { cross.setAttribute("opacity", 0); hideTip(); });
+
+  const cbox = $("#counts"), CH = 96, ct = 8, cb = 34;
+  const [c, CW] = svgFor(cbox, CH);
+  const cih = CH - ct - cb, maxC = Math.max(...st.map(d => d.illicit), 1);
+  const cy = v => ct + (1 - v / maxC) * cih;
+  const bw = Math.max(Math.min(iw / st.length - 3, 22), 2);
+  st.forEach(d => {
+    const h = cy(0) - cy(d.illicit), bx = x(d.time_step) - bw / 2, top = cy(d.illicit), rad = Math.min(3, h, bw / 2);
+    if (h > 0) el("path", {d: `M${bx},${cy(0)}V${top + rad}Q${bx},${top} ${bx + rad},${top}H${bx + bw - rad}Q${bx + bw},${top} ${bx + bw},${top + rad}V${cy(0)}Z`, fill: "var(--illicit)"}, c);
+    const hb = el("rect", {x: x(d.time_step) - iw / st.length / 2, y: ct, width: iw / st.length, height: cih, fill: "transparent"}, c);
+    hb.addEventListener("mousemove", e => showTip(e, `Time step ${d.time_step}`, [["Illicit transactions", d.illicit, "var(--illicit)"]]));
+    hb.addEventListener("mouseleave", hideTip);
+    if (st.length <= 20 || d.time_step % 2 === 1) el("text", {x: x(d.time_step), y: CH - cb + 15, "text-anchor": "middle", class: "tick"}, c).textContent = d.time_step;
+  });
+  el("line", {x1: m.l, x2: CW - m.r, y1: cy(0), y2: cy(0), stroke: "var(--ink-3)"}, c);
+  el("text", {x: m.l - 6, y: cy(maxC) + 4, "text-anchor": "end", class: "tick"}, c).textContent = maxC;
+  el("text", {x: m.l + iw / 2, y: CH - 3, "text-anchor": "middle", class: "axis-title"}, c).textContent = "Time step · bars show illicit transactions per step";
+}
+
+/* ---------- cases ---------- */
+let current = 0;
+function renderList() {
+  $("#case-list").innerHTML = D.cases.map((c, i) => `
+    <button class="case" role="option" type="button" data-i="${i}" aria-selected="${i === current}">
+      <span class="scorebar"><i style="width:${c.score * 100}%"></i></span>
+      <span><span class="id">${c.id}</span><br><span class="st">step ${c.step} · ${c.label === 1 ? "labelled illicit" : c.label === 0 ? "labelled licit" : "unlabelled"}</span></span>
+      <span class="sc">${fmt(c.score)}</span>
+    </button>`).join("") || `<p class="small">No transactions in the High band.</p>`;
+}
+$("#case-list").addEventListener("click", e => {
+  const b = e.target.closest(".case"); if (!b) return;
+  current = +b.dataset.i;
+  document.querySelectorAll(".case").forEach(x => x.setAttribute("aria-selected", +x.dataset.i === current));
+  renderDetail();
+});
+function renderDetail() {
+  const c = D.cases[current];
+  if (!c) { $("#detail").innerHTML = ""; return; }
+  const maxC = Math.max(...c.reasons.map(r => r.contribution), 1e-9);
+  const lab = c.label === 1 ? `<span class="pill bad">${ICON_NO}Labelled illicit</span>` : c.label === 0 ? `<span class="pill good">${ICON_OK}Labelled licit</span>` : `<span class="pill neutral">Unlabelled</span>`;
+  $("#detail").innerHTML = `
+    <div class="detail-head"><span class="mono">${c.id}</span>${lab}</div>
+    <div class="facts">
+      <span class="chip">Risk score <b class="num">${fmt(c.score, 4)}</b></span>
+      <span class="chip">Band <b>High</b></span>
+      <span class="chip">Time step <b class="num">${c.step}</b></span>
+      <span class="chip">Neighbours shown <b class="num">${c.graph.nodes.length - 1}</b></span>
+    </div>
+    <div class="detail-cols">
+      <div>
+        <h3 style="font-size:14px;margin-bottom:8px">Why it was flagged</h3>
+        <div class="reasons">${c.reasons.map(r => `
+          <div class="reason"><span title="${r.feature}">${r.description}<br><span class="small mono">${r.feature} = ${fmt(r.value, 3)}</span></span>
+          <span><span class="rb" style="display:block;width:${Math.max(4, r.contribution / maxC * 100)}%"></span></span></div>`).join("") || `<p class="small">No positive contributions recorded.</p>`}
+        </div>
+        <p class="small" style="margin-top:8px">Bar length = how strongly the feature pushed the score towards illicit (${M.explanation_method}). The ground-truth label is shown only because this is an evaluation on labelled data.</p>
+      </div>
+      <div>
+        <h3 style="font-size:14px;margin-bottom:8px">Payment neighbourhood</h3>
+        <div class="chart" id="nbr"></div>
+        <div class="legend">
+          <span><i class="sw box" style="background:var(--accent)"></i>This transaction</span>
+          <span><i class="sw box" style="background:var(--bad)"></i>High score</span>
+          <span><i class="sw box" style="background:var(--licit)"></i>Low score</span>
+        </div>
+      </div>
+    </div>`;
+  drawNbr(c);
+}
+function drawNbr(c) {
+  const box = $("#nbr"), H = 260;
+  const [s, W] = svgFor(box, H);
+  const pad = 24, sc = Math.min(W, H) - 2 * pad;
+  const P = {}; c.graph.nodes.forEach(n => P[n.id] = [W / 2 + n.x * sc, H / 2 + n.y * sc]);
+  const defs = el("defs", {}, s);
+  const mk = el("marker", {id: "arr", viewBox: "0 0 10 10", refX: 16, refY: 5, markerWidth: 6, markerHeight: 6, orient: "auto-start-reverse"}, defs);
+  el("path", {d: "M0,0L10,5L0,10z", fill: "var(--ink-3)"}, mk);
+  c.graph.edges.forEach(([a, b]) => el("line", {x1: P[a][0], y1: P[a][1], x2: P[b][0], y2: P[b][1], stroke: "var(--ink-3)", "stroke-opacity": .5, "stroke-width": 1.2, "marker-end": "url(#arr)"}, s));
+  const bad = css("--bad") || "#d03b3b", low = css("--licit") || "#a3abb8";
+  const mix = v => `color-mix(in oklab, ${bad} ${Math.round(v * 100)}%, ${low})`;
+  c.graph.nodes.slice().sort((a, b) => a.self - b.self).forEach(n => {
+    const [cx, cy] = P[n.id];
+    const circ = el("circle", {cx, cy, r: n.self ? 9 : 6, fill: n.self ? "var(--accent)" : n.s == null ? "var(--surface-2)" : mix(n.s),
+      stroke: n.self ? "var(--surface)" : n.s == null ? "var(--ink-3)" : "var(--surface)", "stroke-width": 2}, s);
+    circ.addEventListener("mousemove", e => showTip(e, n.self ? `${n.id} (selected)` : n.id, [["Risk score", n.s == null ? "not scored" : fmt(n.s)]]));
+    circ.addEventListener("mouseleave", hideTip);
+  });
+}
+
+/* ---------- footer ---------- */
+$("#foot").textContent = "Risk scores are leads for human review, never conclusions about any person. The model classifies transactions, not wallets or people. Elliptic is anonymised Bitcoin data and says nothing about activity in Tanzania. No automatic action is taken on any flag.";
+
+/* ---------- render ---------- */
+function renderAll() { updateThreshold(); drawBars(); drawTime(); renderDetail(); }
+renderList();
+renderAll();
+let rt, lastW = $("#app").clientWidth;
+new ResizeObserver(() => { const w = $("#app").clientWidth; if (w === lastW) return; lastW = w; clearTimeout(rt); rt = setTimeout(renderAll, 120); }).observe($("#app"));
+if (window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", renderDetail);
+</script>

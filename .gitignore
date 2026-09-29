@@ -1,0 +1,5 @@
+data/elliptic_bitcoin_dataset/*.csv
+data/synthetic/
+outputs/
+__pycache__/
+.venv/

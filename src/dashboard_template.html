@@ -76,6 +76,15 @@ h2{font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.02e
 .sub{color:var(--ink-2);max-width:72ch}
 .mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 header{display:grid;gap:10px}
+/* phase switcher */
+.topbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 16px}
+.switcher{display:inline-flex;padding:3px;gap:3px;border:1px solid var(--edge);border-radius:999px;background:var(--surface);
+  backdrop-filter:blur(14px) saturate(150%);-webkit-backdrop-filter:blur(14px) saturate(150%);box-shadow:var(--shadow)}
+.switcher a{font-size:12.5px;font-weight:500;color:var(--ink-2);text-decoration:none;padding:5px 14px;border-radius:999px;white-space:nowrap;transition:background .2s,color .2s}
+.switcher a:hover{color:var(--ink);background:var(--surface-2)}
+.switcher a[aria-current=page]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-soft),0 0 16px var(--accent-soft)}
+.switcher a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:520px){.switcher span{display:none}}
 .runline{display:flex;flex-wrap:wrap;gap:8px;color:var(--ink-3);font-size:12px}
 .runline span{border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:3px 11px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
 .runline b{color:var(--ink);font-weight:500;font-family:var(--mono);font-size:11.5px}
@@ -194,7 +203,7 @@ footer{color:var(--ink-3);font-size:12px;max-width:80ch}
 
 <div class="wrap" id="app">
   <header>
-    <div class="eyebrow">Blockchain forensics · proof of concept</div>
+    <div class="topbar"><div class="eyebrow">Blockchain forensics · proof of concept</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a></nav></div>
     <h1>Illicit transaction detection on Elliptic Bitcoin data</h1>
     <div class="runline" id="runline"></div>
   </header>
@@ -278,6 +287,18 @@ footer{color:var(--ink-3);font-size:12px;max-width:80ch}
 
 <script>
 const D = /*__DATA__*/null;
+/* phase switcher: local files when opened from disk (works offline), published pages otherwise */
+(function () {
+  const L = /*__LINKS__*/null;
+  if (!L) return;
+  const offline = location.protocol === "file:";
+  document.querySelectorAll(".switcher a").forEach(a => {
+    const k = a.dataset.page;
+    if (k === L.current) { a.setAttribute("aria-current", "page"); a.removeAttribute("href"); return; }
+    a.href = offline ? L.local[k] : L.web[k];
+    if (!offline) { a.target = "_blank"; a.rel = "noopener"; }
+  });
+})();
 const M = D.meta;
 const $ = s => document.querySelector(s);
 const fmt = (v, d = 3) => v == null || isNaN(v) ? "–" : Number(v).toFixed(d);

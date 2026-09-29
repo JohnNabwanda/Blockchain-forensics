@@ -53,3 +53,17 @@ PAIR_HIGH_MIN_TRADES, PAIR_HIGH_MIN_EVIDENCE = 3, 2.0
 PAIR_MEDIUM_MIN_TRADES, PAIR_MEDIUM_MIN_EVIDENCE = 2, 1.0
 
 TAINT_MAX_HOPS = 2                    # follow funds this far from victim-reported wallets
+
+# Phase switcher on both dashboards: online links (published pages) and offline file paths
+DASHBOARD_WEB_URLS = {"phase1": "https://claude.ai/artifact/9JnreBniRRcCVZsRhfoJYt",
+                      "phase2": "https://claude.ai/artifact/UqYWyPD4tY3qrD6BYa73rp"}
+DASHBOARD_FILES = {"phase1": OUTPUT_DIR / "dashboard.html",
+                   "phase2": PHASE2_OUTPUT_DIR / "dashboard_phase2.html"}
+
+
+def switcher_links(page):
+    """Links for the phase switcher on `page`, with offline paths relative to that page's file."""
+    import os
+    here = DASHBOARD_FILES[page].parent
+    return {"current": page, "web": DASHBOARD_WEB_URLS,
+            "local": {k: os.path.relpath(p, here).replace(os.sep, "/") for k, p in DASHBOARD_FILES.items()}}

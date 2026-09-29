@@ -79,7 +79,8 @@ def main():
     }
     style = re.search(r"<link rel=\"stylesheet\".*?</style>", STYLE_FROM.read_text(), re.S).group(0)
     html = TEMPLATE.read_text().replace("<!--__STYLE__-->", style) \
-        .replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":"), default=str))
+        .replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":"), default=str)) \
+        .replace("/*__LINKS__*/null", json.dumps(config.switcher_links("phase2")))
     (out / "dashboard_phase2.html").write_text(html)
     print(f"Dashboard written to {out / 'dashboard_phase2.html'} ({len(html) // 1024} KB)")
 

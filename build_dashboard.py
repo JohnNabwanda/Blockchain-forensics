@@ -86,7 +86,8 @@ def main():
         "labels": [int(v) for v in scored["label"]],
         "cases": cases,
     }
-    html = TEMPLATE.read_text().replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":")))
+    html = TEMPLATE.read_text().replace("/*__DATA__*/null", json.dumps(data, separators=(",", ":"))) \
+        .replace("/*__LINKS__*/null", json.dumps(config.switcher_links("phase1")))
     if not args.fragment:
         html = ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
                 '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'

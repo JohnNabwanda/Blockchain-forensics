@@ -25,6 +25,13 @@ WATCH_FRACTION = 0.5          # medium band starts at WATCH_FRACTION * threshold
 
 RANDOM_STATE = 42
 
+# ---- H1 follow-up: recalibration from analyst feedback (post-hoc experiment) -------------
+# The pre-registered H1 result above stays as reported. These settings were fixed on 2026-10-06
+# BEFORE any recalibration result was computed, and every variant run is reported.
+RECAL_WINDOW_STEPS = 5        # feedback from the last 5 time steps sets the next threshold
+RECAL_REVIEWED_BANDS = ("High", "Medium")   # analysts see labels only for cases they reviewed
+RECAL_OUTPUT_DIR = OUTPUT_DIR / "h1_recalibration"
+
 # ---- Phase 2: TRON/USDT wallets and off-chain (mobile-money) attribution -------------------
 # Synthetic data only (concept note, Section 12). No real mobile-money records are used.
 PHASE2_DATA_DIR = ROOT / "data" / "phase2_synthetic"

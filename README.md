@@ -114,6 +114,30 @@ belongs in the report. Do not tune it away.
 
 All tunable values (split, precision target, band levels) are in `src/config.py`.
 
+## H1 follow-up: recalibrating the threshold from analyst feedback
+
+The pre-registered H1 result (fixed threshold) stays **not supported**. This separate, post-hoc
+experiment tests the remedy the report proposes. Its settings (5-step feedback window, High and
+Medium cases reviewed, same 0.90 conservative rule) were fixed in `src/config.py` before it ran.
+
+```bash
+python run_h1_recalibration.py       # about 2 minutes after graph features are cached
+```
+
+Test steps are scored in time order. Before each step the threshold is re-chosen from the cases
+analysts reviewed in the previous five steps, using only those labels. A second variant also
+refits the model on all earlier labels, which assumes labels arrive within one step (a best case).
+
+| Variant (test steps 35-49) | Precision | Recall | False flags |
+|---|---|---|---|
+| Fixed threshold (main result) | 0.516 | 0.745 | 756 |
+| Recalibrated from analyst feedback | 0.798 | 0.724 | 199 |
+| Recalibrated and retrained (best case) | 0.899 | 0.741 | 90 |
+
+Before step 43 the retrained variant reaches precision 0.914. From step 43, after a major dark
+market closed, no variant finds the new illicit behaviour (recall 1 to 5%), but recalibration
+stops the flood of false flags. Outputs are in `outputs/h1_recalibration/`.
+
 ## Phase 2: TRON/USDT wallets and mobile-money attribution (synthetic data)
 
 Implements concept note Section 12 on a **generated** world: users, P2P traders, two exchanges

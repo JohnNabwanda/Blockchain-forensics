@@ -61,11 +61,21 @@ PAIR_MEDIUM_MIN_TRADES, PAIR_MEDIUM_MIN_EVIDENCE = 2, 1.0
 
 TAINT_MAX_HOPS = 2                    # follow funds this far from victim-reported wallets
 
+# ---- Phase 3: Track B smart-contract analysis (static analysis with Slither) -----------------
+# Benchmark: SmartBugs curated (143 contracts with line-level vulnerability annotations), cloned to
+# PHASE3_BENCHMARK_DIR. Run with the separate environment in .venv-phase3 (see README).
+PHASE3_BENCHMARK_DIR = ROOT / "data" / "phase3" / "smartbugs-curated"
+PHASE3_OUTPUT_DIR = OUTPUT_DIR / "phase3"
+PHASE3_TIMEOUT_S = 180                # per contract
+PHASE3_LINE_TOLERANCE = 2             # a finding counts as on a labelled line if within this many lines
+
 # Phase switcher on both dashboards: online links (published pages) and offline file paths
 DASHBOARD_WEB_URLS = {"phase1": "https://claude.ai/artifact/9JnreBniRRcCVZsRhfoJYt",
-                      "phase2": "https://claude.ai/artifact/UqYWyPD4tY3qrD6BYa73rp"}
+                      "phase2": "https://claude.ai/artifact/UqYWyPD4tY3qrD6BYa73rp",
+                      "phase3": "https://claude.ai/artifact/RpAd2NeX37CqSKtqyeMpCq"}
 DASHBOARD_FILES = {"phase1": OUTPUT_DIR / "dashboard.html",
-                   "phase2": PHASE2_OUTPUT_DIR / "dashboard_phase2.html"}
+                   "phase2": PHASE2_OUTPUT_DIR / "dashboard_phase2.html",
+                   "phase3": OUTPUT_DIR / "phase3" / "dashboard_phase3.html"}
 
 
 def switcher_links(page):

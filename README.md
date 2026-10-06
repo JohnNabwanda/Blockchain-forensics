@@ -170,6 +170,40 @@ linked account may belong to a relative or agent rather than the wallet owner.
 
 Settings are in the Phase 2 block of `src/config.py`.
 
+## Phase 3: smart-contract static analysis (Track B)
+
+Track B asks a different question from Track A: is this contract code exploitable, before or at
+deployment? It runs Slither on the SmartBugs curated benchmark (143 Solidity contracts, each flaw
+labelled by line) and scores what static analysis catches. It needs its own environment.
+
+```bash
+python -m venv .venv-phase3
+.venv-phase3/bin/pip install -r requirements-phase3.txt
+git clone --depth 1 https://github.com/smartbugs/smartbugs-curated data/phase3/smartbugs-curated
+.venv-phase3/bin/solc-select install 0.4.0 0.4.2 0.4.9 0.4.10 0.4.11 0.4.13 0.4.15 0.4.16 \
+    0.4.18 0.4.19 0.4.21 0.4.22 0.4.23 0.4.24 0.4.25 0.5.0
+.venv-phase3/bin/python run_phase3.py        # under a minute; raw Slither output is cached
+python build_phase3_dashboard.py             # writes outputs/phase3/dashboard_phase3.html
+```
+
+Results (141 of 143 contracts analysed; Slither crashes on 2):
+
+| Category | Labelled | Found on the labelled line |
+|---|---|---|
+| Unchecked low-level calls | 75 | 59 (79%) |
+| Reentrancy | 30 | 27 (90%) |
+| Access control | 21 | 5 (24%) |
+| Bad randomness | 31 | 1 (3%) |
+| Time manipulation | 7 | 3 (43%) |
+| Arithmetic overflow, front running, short addresses | 31 | no static detector |
+| **All** | **205** | **99 (48%)**; 57% where a detector exists |
+
+A finding counts when a detector for the same category reports within 2 lines of a labelled line.
+The detector-to-category mapping in `src/phase3/evaluate.py` was fixed before the scan ran.
+Static analysis misses arithmetic and transaction-ordering flaws, so the full Phase 3 adds fuzzing
+(Echidna or Foundry). The tracks meet at one point: addresses that interacted with a contract
+found to be malicious become starting points for Track A and Phase 2 tracing.
+
 ## Scope reminders
 
 - The Phase 1 model classifies **transactions**, not wallets. Wallet clustering is in Phase 2 (TRON).

@@ -39,7 +39,7 @@
 
 <div class="wrap" id="app">
   <header>
-    <div class="topbar"><div class="eyebrow">Blockchain forensics · Phase 2 · TRON/USDT and mobile money</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a></nav></div>
+    <div class="topbar"><div class="eyebrow">Blockchain forensics · Phase 2 · TRON/USDT and mobile money</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a><a data-page="phase3" href="#">Phase 3<span> · Smart contracts</span></a></nav></div>
     <h1>Cash-out tracing from reported wallets to mobile money</h1>
     <div class="runline" id="runline"></div>
     <nav class="nav" aria-label="Sections"><a href="#leads-h">Cash-out leads</a><a href="#how-h">How links are made</a><a href="#st-h">Stress test</a></nav>
@@ -98,7 +98,9 @@ const D = /*__DATA__*/null;
   document.querySelectorAll(".switcher a").forEach(a => {
     const k = a.dataset.page;
     if (k === L.current) { a.setAttribute("aria-current", "page"); a.removeAttribute("href"); return; }
-    a.href = offline ? L.local[k] : L.web[k];
+    const href = offline ? L.local[k] : L.web[k];
+    if (!href) { a.remove(); return; }
+    a.href = href;
     if (!offline) { a.target = "_blank"; a.rel = "noopener"; }
   });
 })();

@@ -1,0 +1,226 @@
+<title>Smart-contract Analysis Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!--__STYLE__-->
+<style>
+.grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:1000px){.grid-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.grid-4{grid-template-columns:1fr}}
+.nav{display:flex;flex-wrap:wrap;gap:8px}
+.nav a{color:var(--ink-2);text-decoration:none;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 11px;background:var(--surface-2)}
+.nav a:hover{border-color:var(--accent);color:var(--accent)}
+.bar-row{display:grid;grid-template-columns:minmax(0,13rem) minmax(0,1fr);gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.bar-row:last-child{border-bottom:0}
+@media (max-width:600px){.bar-row{grid-template-columns:1fr;gap:6px}}
+.bar-row .lab{font-size:12.5px}
+.bar-row .lab small{display:block;color:var(--ink-3);font-size:11px}
+.bars{display:grid;gap:4px}
+.bars div{display:grid;grid-template-columns:minmax(0,1fr) 5.5rem;gap:8px;align-items:center;font-family:var(--mono);font-size:11px;color:var(--ink-2)}
+.track{height:7px;border-radius:4px;background:var(--grid);overflow:hidden}
+.track i{display:block;height:100%;border-radius:4px}
+.gap-note{font-family:var(--mono);font-size:11px;color:var(--warn-ink);background:var(--warn-bg);border-radius:6px;padding:3px 8px;justify-self:start}
+.method{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:800px){.method{grid-template-columns:1fr}}
+.method div{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface-2)}
+.method h3{font-family:var(--display);font-size:14px;margin-bottom:4px}
+.method p{margin:0;font-size:12.5px;color:var(--ink-2)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.filters select{font:inherit;font-size:12.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+.labels{display:grid;gap:6px}
+.labels div{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px}
+.code{font-family:var(--mono);font-size:11.5px;line-height:1.55;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);max-height:420px;overflow:auto;padding:6px 0}
+.code div{display:grid;grid-template-columns:3.2rem minmax(0,1fr) auto;gap:10px;padding:0 10px;white-space:pre;color:var(--ink-2)}
+.code div span:first-child{color:var(--ink-3);text-align:right;user-select:none}
+.code div.lab{background:var(--bad-bg);color:var(--ink)}
+.code div.fnd{box-shadow:inset 3px 0 0 var(--accent)}
+.code div em{font-style:normal;font-size:10.5px;color:var(--accent);padding-left:8px}
+.detail>div,.detail-head{min-width:0}
+#ct-detail td{vertical-align:top}
+#ct-detail th.desc,#ct-detail td.desc{text-align:left;white-space:normal;font-family:var(--sans);min-width:14rem}
+.legend .sw.lab{background:var(--bad-bg);border:1px solid var(--bad)}
+.legend .sw.fnd{background:var(--accent)}
+</style>
+
+<div class="wrap" id="app">
+  <header>
+    <div class="topbar"><div class="eyebrow">Blockchain forensics · Phase 3 · Smart-contract analysis</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a><a data-page="phase3" href="#">Phase 3<span> · Smart contracts</span></a></nav></div>
+    <h1>Finding exploitable flaws in contract code before deployment</h1>
+    <div class="runline" id="runline"></div>
+    <nav class="nav" aria-label="Sections"><a href="#cat-h">By category</a><a href="#ct-h">Contract explorer</a><a href="#link-h">Link to Track A</a></nav>
+  </header>
+  <div class="banner">
+    <strong>Benchmark, not live contracts.</strong>
+    <span>These are SmartBugs curated contracts: public, deliberately or historically vulnerable Solidity code with each flaw labelled by line. Results show what static analysis catches and misses; they are not an audit of any deployed contract.</span>
+  </div>
+
+  <section class="grid-4" id="verdicts" aria-label="Phase 3 results"></section>
+
+  <section class="panel" aria-labelledby="cat-h">
+    <div class="panel-head"><div>
+      <h2 id="cat-h">What static analysis catches, by category</h2>
+      <p>Share of labelled vulnerabilities that Slither reports on the labelled line, and anywhere in the same contract. Three categories have no static detector at all; the full Phase 3 adds fuzzing for them.</p>
+    </div></div>
+    <div id="cats"></div>
+    <div class="legend">
+      <span><i class="sw box" style="background:var(--accent)"></i>Found on the labelled line</span>
+      <span><i class="sw box" style="background:var(--set2)"></i>Found anywhere in the contract</span>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="ct-h">
+    <div class="panel-head"><div>
+      <h2 id="ct-h">Contract explorer</h2>
+      <p id="ct-sub">Each contract with its labelled flaws and Slither's findings. Highlighted lines are labelled flaws; a bar marks a line Slither reported.</p>
+    </div></div>
+    <div class="filters">
+      <label class="small">Category <select id="f-cat"></select></label>
+      <label class="small">Show <select id="f-hit"><option value="all">All contracts</option><option value="miss">With a missed flaw</option><option value="hit">All flaws found</option></select></label>
+    </div>
+    <div class="cases">
+      <div class="case-list" id="ct-list" role="listbox" aria-label="Contracts"></div>
+      <div class="detail" id="ct-detail"></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="link-h">
+    <div class="panel-head"><div>
+      <h2 id="link-h">How Track B connects to Track A</h2>
+      <p>The two tracks answer different questions and are evaluated separately. They meet at one point.</p>
+    </div></div>
+    <div class="method" id="method"></div>
+  </section>
+
+  <footer>Static analysis findings are leads for a human reviewer, not proof that a contract is exploitable or that its owner acted in bad faith. Benchmark source: SmartBugs curated dataset (ICSE 2020), used under its licence.</footer>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+const D = /*__DATA__*/null;
+/* phase switcher: local files when opened from disk (works offline), published pages otherwise */
+(function () {
+  const L = /*__LINKS__*/null;
+  if (!L) return;
+  const offline = location.protocol === "file:";
+  document.querySelectorAll(".switcher a").forEach(a => {
+    const k = a.dataset.page;
+    if (k === L.current) { a.setAttribute("aria-current", "page"); a.removeAttribute("href"); return; }
+    const href = offline ? L.local[k] : L.web[k];
+    if (!href) { a.remove(); return; }
+    a.href = href;
+    if (!offline) { a.target = "_blank"; a.rel = "noopener"; }
+  });
+})();
+const M = D.metrics, CL = D.category_labels;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const pc = (a, b) => b ? Math.round(100 * a / b) + "%" : "–";
+const ICON_OK = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_NO = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3l-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+/* ---------- header and verdicts ---------- */
+$("#runline").innerHTML = [
+  ["Tool", "Slither " + D.tool_version], ["Contracts", `${M.analysed} of ${M.contracts} analysed`],
+  ["Labelled flaws", M.labels], ["Line tolerance", `±${M.line_tolerance}`],
+].map(([k, v]) => `<span>${k} <b>${esc(v)}</b></span>`).join("");
+
+const cov = M.per_category.filter(r => r.has_detector);
+const gaps = M.per_category.filter(r => !r.has_detector);
+const cards = [
+  {h: "Overall", t: "Flaws found on the line", big: pc(M.line_hits, M.labels), unit: `${M.line_hits} of ${M.labels}`, ok: null,
+   p: `A finding of the right category within ${M.line_tolerance} lines of the labelled line. ${pc(M.contract_hits, M.labels)} are flagged somewhere in the right contract.`},
+  {h: "Where a detector exists", t: "Coverable flaws found", big: pc(M.covered_line_hits, M.labels_with_detector), unit: `${M.covered_line_hits} of ${M.labels_with_detector}`, ok: M.covered_line_hits / M.labels_with_detector >= .5,
+   p: `Counting only the ${cov.length} categories Slither has detectors for.`},
+  {h: "Blind spots", t: "Categories with no detector", big: gaps.length, unit: `${gaps.reduce((a, r) => a + r.labelled, 0)} flaws`, ok: false,
+   p: `${gaps.map(r => r.label).join(", ")}. These need fuzzing or symbolic execution.`},
+  {h: "Analyst load", t: "Findings to review", big: M.findings_total, unit: `${M.analysed} contracts`, ok: null,
+   p: `${M.findings_high} rated High impact. ${M.findings_mapped_on_label} of ${M.findings_mapped} category findings sit on a labelled line; the rest need triage.`},
+];
+const pill = ok => ok === null ? "" : ok ? `<span class="pill good">${ICON_OK}Useful</span>` : `<span class="pill bad">${ICON_NO}Gap</span>`;
+$("#verdicts").innerHTML = cards.map(v => `
+  <article class="verdict">
+    <div class="top"><span class="h">${v.h}</span>${pill(v.ok)}</div>
+    <h3>${v.t}</h3>
+    <div class="big">${v.big}<small>${v.unit}</small></div>
+    <p>${v.p}</p>
+  </article>`).join("");
+
+/* ---------- categories ---------- */
+const bar = (a, b, color) => `<div><span class="track"><i style="width:${b ? 100 * a / b : 0}%;background:${color}"></i></span><span>${a}/${b} · ${pc(a, b)}</span></div>`;
+$("#cats").innerHTML = [...M.per_category].filter(r => r.labelled).sort((a, b) => b.labelled - a.labelled).map(r => `
+  <div class="bar-row">
+    <div class="lab">${esc(r.label)}<small>${r.labelled} labelled · ${r.has_detector ? `${r.findings} findings` : "no detector"}</small></div>
+    ${r.has_detector ? `<div class="bars">${bar(r.line_hits, r.labelled, "var(--accent)")}${bar(r.contract_hits, r.labelled, "var(--set2)")}</div>`
+                     : `<span class="gap-note">Not detectable by static analysis: needs fuzzing or off-chain checks</span>`}
+  </div>`).join("");
+
+/* ---------- contract explorer ---------- */
+const C = D.contracts.filter(c => !c.error);
+const cats = [...new Set(C.map(c => c.folder))].sort();
+$("#f-cat").innerHTML = `<option value="">All categories</option>` + cats.map(c => `<option value="${c}">${esc(CL[c] || c)}</option>`).join("");
+let shown = [], current = 0;
+function renderList() {
+  const cat = $("#f-cat").value, hit = $("#f-hit").value;
+  shown = C.filter(c => (!cat || c.folder === cat) &&
+    (hit === "all" || (hit === "miss" ? c.labels.some(l => !l.line_hit) : c.labels.every(l => l.line_hit))));
+  current = 0;
+  $("#ct-list").innerHTML = shown.map((c, i) => {
+    const h = c.labels.filter(l => l.line_hit).length;
+    return `<button class="case" role="option" type="button" data-i="${i}" aria-selected="${i === 0}">
+      <span class="scorebar"><i style="width:${100 * h / c.labels.length}%"></i></span>
+      <span><span class="id">${esc(c.name.length > 26 ? c.name.slice(0, 12) + "…" + c.name.slice(-10) : c.name)}</span><br><span class="st">${esc(CL[c.folder] || c.folder)} · ${c.findings.length} findings</span></span>
+      <span class="sc">${h}/${c.labels.length}</span></button>`;
+  }).join("") || `<p class="small">No contracts match.</p>`;
+  renderDetail();
+}
+$("#ct-list").addEventListener("click", e => {
+  const b = e.target.closest(".case"); if (!b) return;
+  current = +b.dataset.i;
+  document.querySelectorAll("#ct-list .case").forEach(x => x.setAttribute("aria-selected", +x.dataset.i === current));
+  renderDetail();
+});
+$("#f-cat").addEventListener("change", renderList);
+$("#f-hit").addEventListener("change", renderList);
+
+function renderDetail() {
+  const c = shown[current];
+  if (!c) { $("#ct-detail").innerHTML = ""; return; }
+  const labLines = new Set(c.labels.flatMap(l => l.lines));
+  const fnd = {};
+  c.findings.forEach(f => f.lines.forEach(n => (fnd[n] = fnd[n] || []).push(f.check)));
+  const src = c.source.split("\n");
+  const sorted = [...c.findings].sort((a, b) => ["High", "Medium", "Low"].indexOf(a.impact) - ["High", "Medium", "Low"].indexOf(b.impact));
+  $("#ct-detail").innerHTML = `
+    <div class="detail-head"><span class="mono">${esc(c.path.replace("dataset/", ""))}</span><span class="pill neutral">solc ${esc(c.solc)}</span></div>
+    <div>
+      <h3 style="font-size:14px;margin-bottom:6px">Labelled flaws</h3>
+      <div class="labels">${c.labels.map(l => `<div>${l.line_hit ? `<span class="pill good">${ICON_OK}Found</span>` : l.contract_hit ? `<span class="pill neutral">Elsewhere in contract</span>` : `<span class="pill bad">${ICON_NO}Missed</span>`}
+        <span>${esc(CL[l.category] || l.category)}, line ${l.lines.join(", ")}</span>${l.hit_checks.length ? `<span class="small mono">${esc(l.hit_checks.join(", "))}</span>` : ""}</div>`).join("")}</div>
+    </div>
+    <div>
+      <h3 style="font-size:14px;margin-bottom:6px">Slither findings</h3>
+      ${sorted.length ? `<div class="tbl-wrap" style="max-height:220px;overflow-y:auto"><table><thead><tr><th>Detector</th><th>Impact</th><th>Lines</th><th>On a label</th><th class="desc">What it says</th></tr></thead><tbody>
+        ${sorted.map(f => `<tr><td class="mono">${esc(f.check)}</td><td>${esc(f.impact)}</td><td class="mono">${esc(f.lines.slice(0, 4).join(", "))}${f.lines.length > 4 ? "…" : ""}</td><td>${f.matched ? "yes" : "–"}</td><td class="desc">${esc(f.description.replace(/\s*\([^()]*\.sol#[^()]*\)/g, ""))}</td></tr>`).join("")}
+      </tbody></table></div>` : `<p class="small">No findings at Low impact or above.</p>`}
+    </div>
+    <div>
+      <h3 style="font-size:14px;margin-bottom:6px">Source</h3>
+      <div class="code" id="code">${src.map((t, i) => {
+        const n = i + 1, f = fnd[n];
+        return `<div class="${labLines.has(n) ? "lab" : ""} ${f ? "fnd" : ""}" ${labLines.has(n) ? `id="l${n}"` : ""}><span>${n}</span><span>${esc(t) || " "}</span>${f ? `<em>${esc([...new Set(f)].join(", "))}</em>` : "<span></span>"}</div>`;
+      }).join("")}</div>
+      <div class="legend"><span><i class="sw box lab"></i>Labelled flaw</span><span><i class="sw box fnd"></i>Line Slither reported</span></div>
+    </div>`;
+  const first = Math.min(...labLines);
+  const row = document.getElementById("l" + first), box = $("#code");
+  if (row && box) box.scrollTop = Math.max(0, row.offsetTop - box.offsetTop - 60);
+}
+
+/* ---------- method ---------- */
+$("#method").innerHTML = [
+  ["Before deployment", "Track B reads contract source or bytecode and reports flaws such as reentrancy, unchecked calls and weak randomness, with severity. No transaction data is needed."],
+  ["Handoff to Track A", "If a contract is found to be malicious or exploited, the addresses that interacted with it become starting points for Track A transaction tracing, and for Phase 2 cash-out tracing."],
+  ["What comes next", "Static analysis misses arithmetic, front-running and logic flaws. The full Phase 3 adds fuzzing and property tests (Echidna or Foundry) and runs on verified Ethereum/EVM contracts."],
+].map(([h, p]) => `<div><h3>${h}</h3><p>${p}</p></div>`).join("");
+
+renderList();
+</script>

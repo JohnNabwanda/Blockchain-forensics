@@ -1,4 +1,6 @@
 """Investigator dashboard for the PoC.   Run:  streamlit run app.py"""
+import hmac
+
 import pandas as pd
 import streamlit as st
 
@@ -7,6 +9,31 @@ from src.dashboard_data import (load_decisions, load_outputs, plot_neighbourhood
                                 record_decision, review_queue)
 
 st.set_page_config(page_title="Blockchain Forensics PoC", layout="wide")
+
+
+def login_ok():
+    """Demo login. Credentials come from .streamlit/secrets.toml ([auth] username, password);
+    without that file the app runs open."""
+    try:
+        auth = st.secrets["auth"]
+    except (KeyError, FileNotFoundError, st.errors.StreamlitSecretNotFoundError):
+        return True
+    if st.session_state.get("user"):
+        return True
+    st.title("Blockchain Forensics: Proof of Concept")
+    with st.form("login"):
+        user = st.text_input("Username")
+        pw = st.text_input("Password", type="password")
+        if st.form_submit_button("Sign in"):
+            if hmac.compare_digest(user, auth["username"]) and hmac.compare_digest(pw, auth["password"]):
+                st.session_state["user"] = user
+                st.rerun()
+            st.error("Wrong username or password.")
+    return False
+
+
+if not login_ok():
+    st.stop()
 
 if not (config.OUTPUT_DIR / "meta.json").exists():
     st.error("No results yet. Run `python run_pipeline.py` first.")

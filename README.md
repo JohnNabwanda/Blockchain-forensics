@@ -69,6 +69,12 @@ Hover over any chart for exact values.
 streamlit run app.py
 ```
 
+To require a demo login, copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and set a
+username and password (the real file is git-ignored). Without it the app opens without a login.
+
+To serve the three dashboards on the same machine, run `python -m http.server 8000 --directory outputs`
+and open `http://localhost:8000/dashboard.html`.
+
 It has three tabs:
 
 - **Case review:** a queue of flagged transactions. Each case shows the risk score, the reasons,

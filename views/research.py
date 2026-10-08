@@ -2,9 +2,9 @@
 import streamlit as st
 
 from src import config
+from views.common import page_header
 
-st.title(":material/science: Research results")
-st.caption("How well each method works, measured on labelled benchmark data before it was put into the platform.")
+page_header("Evidence", "Research results", "How well each method works, measured on labelled benchmark data before it was put into the platform.")
 
 PAGES = [("Phase 1 · Bitcoin detection", config.DASHBOARD_FILES["phase1"], "python run_pipeline.py && python build_dashboard.py"),
          ("Phase 2 · Cash-out tracing", config.DASHBOARD_FILES["phase2"], "python run_phase2.py --stress && python build_phase2_dashboard.py"),

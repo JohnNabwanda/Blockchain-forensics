@@ -8,8 +8,10 @@ import hmac
 import streamlit as st
 
 from src.live import store
+from views.common import apply_style, page_header
 
 st.set_page_config(page_title="Blockchain Forensics Platform", page_icon=":material/policy:", layout="wide")
+apply_style()
 
 
 def users():
@@ -28,8 +30,8 @@ def users():
 def login(accounts):
     _, mid, _ = st.columns([1, 1.2, 1])
     with mid:
-        st.markdown("## :material/policy: Blockchain Forensics Platform")
-        st.caption("Authorised investigators only. All activity is recorded in the audit log.")
+        st.space("large")
+        page_header("Investigation platform", "Sign in", "Authorised investigators only. All activity is recorded in the audit log.")
         with st.form("login"):
             user = st.text_input("Username")
             pw = st.text_input("Password", type="password")

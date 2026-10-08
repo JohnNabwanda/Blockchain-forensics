@@ -6,11 +6,13 @@ import streamlit as st
 
 from src import config
 from src.live import contracts, store
-from views.common import analyst, band_badge, lead_notice, open_case_button
+from views.common import analyst, band_badge, lead_notice, open_case_button, page_header
 
-st.title(":material/data_object: Smart-contract audit")
-st.caption("Static analysis with Slither. Upload or paste a Solidity contract, e.g. one used in a reported "
-           "investment scam, to find the flaws or hidden functions that put users' funds at risk.")
+page_header("Investigate · Smart contracts", "Smart-contract audit",
+            "Upload or paste a Solidity contract, e.g. one used in a reported investment scam, to find the flaws "
+            "or hidden functions that put users' funds at risk.",
+            {"Engine": "Slither static analysis", "Compilers": f"solc {contracts.installed_solc()[0]} – {contracts.installed_solc()[-1]}"
+             if contracts.installed_solc() else "none"})
 
 if not (config.SLITHER_ENV / "bin" / "slither").exists():
     st.error("Slither is not installed on this server (see README, Phase 3 setup).")
@@ -32,7 +34,6 @@ if c1.button("Analyse contract", type="primary", icon=":material/bug_report:", d
     r = st.session_state["scan"]
     store.log(analyst(), "contract scan", module="contract", subject=filename,
               detail=f"sha256 {r['sha256'][:16]}, {len(r['findings'])} findings" + (f", error: {r['error']}" if r["error"] else ""))
-st.caption(f"Compilers available: {', '.join(contracts.installed_solc())}")
 
 r = st.session_state.get("scan")
 if not r:

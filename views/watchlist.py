@@ -3,10 +3,9 @@ import pandas as pd
 import streamlit as st
 
 from src.live import store, tron
-from views.common import analyst
+from views.common import analyst, page_header
 
-st.title(":material/visibility: Watchlist")
-st.caption("Wallets on this list raise the risk of every wallet that transacts with them, and are highlighted in traces.")
+page_header("Casework · Watchlist", "Watchlist", "Wallets on this list raise the risk of every wallet that transacts with them, and are highlighted in traces.")
 
 with st.form("add", clear_on_submit=True):
     c1, c2, c3 = st.columns([3, 2, 2])

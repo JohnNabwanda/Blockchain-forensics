@@ -5,10 +5,10 @@ import pandas as pd
 import streamlit as st
 
 from src.live import store, tron
-from views.common import analyst, band_badge, lead_notice, open_case_button
+from views.common import analyst, band_badge, compact, lead_notice, open_case_button, page_header
 
-st.title(":material/account_balance_wallet: TRON / USDT wallets")
-st.caption("Live data from the TRON blockchain (TronGrid). Enter any wallet address to analyse its USDT activity.")
+page_header("Investigate · TRON / USDT", "Wallet investigation", "Enter any TRON wallet to analyse its USDT activity, score risk and follow the money.",
+            {"Source": "live TRON blockchain (TronGrid)", "Token": "USDT TRC-20"})
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -26,21 +26,34 @@ def short(a):
     return f"{a[:6]}…{a[-4:]}"
 
 
+# Trace graph colours from the dashboards' palette (accent = signal, orange = illicit flow, amber = service)
+GRAPH_THEME = {
+    "dark": {"fill": "#101826", "line": "#2b3a50", "ink": "#e8f1fb", "muted": "#75859d", "accent": "#38d6f0",
+             "root_ink": "#060a12", "bad": "#ff8a3d", "bad_fill": "#2a1a12", "warn": "#fbbf24", "warn_fill": "#2a2410"},
+    "light": {"fill": "#ffffff", "line": "#b8c6d8", "ink": "#0c1524", "muted": "#627088", "accent": "#0a86a8",
+              "root_ink": "#ffffff", "bad": "#e25a1f", "bad_fill": "#fde8dc", "warn": "#d99a0b", "warn_fill": "#fdf3d6"},
+}
+
+
 def dot(graph, root):
-    lines = ['digraph G { rankdir=LR; bgcolor="transparent"; node [shape=box, style="rounded,filled", '
-             'fontname="Helvetica", fontsize=10, fillcolor="#eef2f7", color="#8a99ad"]; '
-             'edge [fontname="Helvetica", fontsize=9, color="#8a99ad", fontcolor="#5a6b80"];']
+    c = GRAPH_THEME.get(st.context.theme.type, GRAPH_THEME["dark"])
+    lines = ['digraph G { rankdir=LR; bgcolor="transparent"; pad=0.2; nodesep=0.35; ranksep=0.9; '
+             f'node [shape=box, style="rounded,filled", fontname="JetBrains Mono", fontsize=10, margin="0.18,0.08", '
+             f'fillcolor="{c["fill"]}", color="{c["line"]}", fontcolor="{c["ink"]}", penwidth=1.2]; '
+             f'edge [fontname="JetBrains Mono", fontsize=9, color="{c["muted"]}", fontcolor="{c["muted"]}", arrowsize=0.7];']
     for n, d in graph["nodes"].items():
         attrs = {"label": short(n)}
         if n == root:
-            attrs.update(fillcolor="#2e5597", fontcolor="white", color="#2e5597")
+            attrs.update(fillcolor=c["accent"], fontcolor=c["root_ink"], color=c["accent"], penwidth="2")
         elif d.get("watchlist"):
-            attrs.update(fillcolor="#f8d7da", color="#c0392b", label=f"{short(n)}\\n⚑ {d['watchlist'][:24]}")
+            attrs.update(fillcolor=c["bad_fill"], color=c["bad"], fontcolor=c["bad"], penwidth="1.8",
+                         label=f"{short(n)}\\n⚑ {d['watchlist'][:24]}")
         elif d.get("service"):
-            attrs.update(fillcolor="#fff3cd", color="#c99a06", label=f"{short(n)}\\nservice (not traced)")
+            attrs.update(fillcolor=c["warn_fill"], color=c["warn"], label=f"{short(n)}\\nservice · not traced")
         lines.append(f'"{n}" [' + ", ".join(f'{k}="{v}"' for k, v in attrs.items()) + "];")
     for a, b, d in graph["edges"]:
-        lines.append(f'"{a}" -> "{b}" [label="{d["usdt"]:,.0f} USDT ({d["n"]})", penwidth={1 + min(d["usdt"] / 20000, 4):.1f}];')
+        lines.append(f'"{a}" -> "{b}" [label="{compact(d["usdt"])} USDT · {d["n"]}", '
+                     f'penwidth={1 + min(d["usdt"] / 50000, 3):.1f}];')
     return "\n".join(lines) + "}"
 
 
@@ -89,11 +102,14 @@ if tx.empty:
 
 m = st.columns(6)
 m[0].metric("Risk score", f"{score}/100")
-m[1].metric("USDT received", f"{s['usdt_in']:,.0f}", f"{s['in_count']} transfers", delta_color="off")
-m[2].metric("USDT sent", f"{s['usdt_out']:,.0f}", f"{s['out_count']} transfers", delta_color="off")
-m[3].metric("Counterparties", f"{s['senders']} in · {s['receivers']} out")
-m[4].metric("Pass-through (24h)", f"{s['pass_through']:.0%}")
-m[5].metric("TRX balance", f"{account['trx_balance']:,.1f}")
+m[1].metric("USDT in", compact(s["usdt_in"]), f"{s['in_count']:,} transfers", delta_color="off", delta_arrow="off",
+            help=f"{s['usdt_in']:,.2f} USDT")
+m[2].metric("USDT out", compact(s["usdt_out"]), f"{s['out_count']:,} transfers", delta_color="off", delta_arrow="off",
+            help=f"{s['usdt_out']:,.2f} USDT")
+m[3].metric("Counterparties", f"{s['senders'] + s['receivers']:,}", f"{s['senders']:,} in · {s['receivers']:,} out",
+            delta_color="off", delta_arrow="off")
+m[4].metric("Pass-through", f"{s['pass_through']:.0%}", help="Share of incoming USDT sent on within 24 hours")
+m[5].metric("TRX", compact(account["trx_balance"]), help=f"TRX balance {account['trx_balance']:,.2f}")
 coverage = f"{s['first_seen']:%d %b %Y %H:%M} → {s['last_seen']:%d %b %Y %H:%M} UTC"
 created = f" · account created {account['created']:%d %b %Y}" if account.get("created") is not None else ""
 st.caption(f"Analysed {s['transfers']:,} transfers, {coverage}{created}"
@@ -147,7 +163,7 @@ with tab_flow:
     t = st.session_state.get("trace")
     if t and t[0] == address and t[1] == direction:
         graph, errors = t[2], t[3]
-        st.graphviz_chart(dot(graph, address), width="stretch")
+        st.graphviz_chart(dot(graph, address), width="content")
         flagged = [n for n, d in graph["nodes"].items() if d.get("watchlist")]
         if flagged:
             st.error(f"{len(flagged)} watchlisted wallet(s) within {hops} hops: " + ", ".join(flagged))

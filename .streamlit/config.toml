@@ -1,0 +1,46 @@
+# Platform look: same design system as the Phase 1-3 dashboards (src/dashboard_template.html).
+# Follows the viewer's light/dark preference; switch under the top-right menu -> Settings.
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+font = "IBM Plex Sans:https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+headingFont = "Chakra Petch:https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&display=swap"
+codeFont = "JetBrains Mono:https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+baseRadius = "12px"
+buttonRadius = "full"
+showWidgetBorder = true
+
+[theme.dark]
+primaryColor = "#38d6f0"
+backgroundColor = "#060a12"
+secondaryBackgroundColor = "#101826"
+textColor = "#e8f1fb"
+linkColor = "#38d6f0"
+borderColor = "#243044"
+dataframeBorderColor = "#1c2636"
+chartCategoricalColors = ["#38d6f0", "#ff8a3d", "#3fa7e0", "#34d399", "#8ef0ff", "#fbbf24", "#ff5d6c"]
+
+[theme.dark.sidebar]
+backgroundColor = "#0a1019"
+secondaryBackgroundColor = "#121b2a"
+borderColor = "#1c2636"
+
+[theme.light]
+primaryColor = "#0a86a8"
+backgroundColor = "#e8eef6"
+secondaryBackgroundColor = "#f6f9fc"
+textColor = "#0c1524"
+linkColor = "#0a86a8"
+borderColor = "#cdd8e6"
+dataframeBorderColor = "#d8e1ec"
+chartCategoricalColors = ["#0a86a8", "#e25a1f", "#3b8fd4", "#0f9d58", "#0d4f8a", "#d99a0b", "#d23b4a"]
+
+[theme.light.sidebar]
+backgroundColor = "#dfe7f1"
+secondaryBackgroundColor = "#eef3f9"
+borderColor = "#cdd8e6"

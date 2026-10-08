@@ -4,12 +4,13 @@ import streamlit as st
 
 from src.live import mobile_money as mm
 from src.live import store, tron
-from views.common import analyst, lead_notice, open_case_button
+from views.common import analyst, lead_notice, open_case_button, page_header
 
-st.title(":material/phone_android: Mobile-money attribution")
-st.caption("Links crypto cash-outs to mobile-money accounts. Import a P2P trader's statement obtained from the "
-           "operator under lawful process; the platform fetches the trader's USDT transfers live and matches each "
-           "payment by timing and exchange-rate spread.")
+page_header("Investigate · Mobile money", "Mobile-money attribution",
+            "Links crypto cash-outs to mobile-money accounts. Import a P2P trader's statement obtained from the "
+            "operator under lawful process; the platform fetches the trader's USDT transfers live and matches each "
+            "payment by timing and exchange-rate spread.",
+            {"Operators": "M-Pesa · Airtel Money · Tigo Pesa · HaloPesa", "On-chain": "live TRON / USDT"})
 
 with st.expander("Statement format", icon=":material/description:"):
     st.markdown("CSV with one row per payment:\n\n"

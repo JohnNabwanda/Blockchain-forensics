@@ -2,9 +2,9 @@
 import streamlit as st
 
 from src.live import store
+from views.common import page_header
 
-st.title(":material/history: Audit log")
-st.caption("Every sign-in, lookup, scan, case change and decision, with who did it and when (UTC).")
+page_header("Casework · Audit", "Audit log", "Every sign-in, lookup, scan, case change and decision, with who did it and when (UTC).")
 
 log = store.audit(limit=2000)
 c1, c2 = st.columns(2)

@@ -6,11 +6,12 @@ import streamlit as st
 
 from src import config
 from src.live import store, tron
-from views.common import analyst
+from views.common import analyst, page_header
 
-st.title(":material/policy: Blockchain Forensics Platform")
-st.caption(f"Signed in as **{analyst()}** · Tracing illicit crypto flows across Bitcoin, TRON/USDT, "
-           "smart contracts and mobile money")
+page_header("Investigation platform", "Tracing illicit crypto flows to the people behind them",
+            "Bitcoin transaction risk, live TRON/USDT wallet tracing, smart-contract audit and mobile-money attribution, "
+            "with one case register and audit trail.",
+            {"Signed in as": analyst(), "Chains": "Bitcoin · TRON", "Assets": "BTC · USDT"})
 
 cases = store.cases()
 open_cases = cases[cases["status"].isin(["Open", "Escalated"])]
@@ -61,4 +62,7 @@ recent = store.audit(limit=12)
 if recent.empty:
     st.caption("Nothing yet.")
 else:
-    st.dataframe(recent[["ts_utc", "analyst", "action", "subject"]], hide_index=True, width="stretch")
+    recent = recent.assign(ts_utc=pd.to_datetime(recent["ts_utc"]), subject=recent["subject"].fillna(""))
+    st.dataframe(recent[["ts_utc", "analyst", "action", "subject"]], hide_index=True, width="stretch",
+                 column_config={"ts_utc": st.column_config.DatetimeColumn("Time (UTC)", format="D MMM YYYY, HH:mm"),
+                                "analyst": "Analyst", "action": "Action", "subject": "Subject"})

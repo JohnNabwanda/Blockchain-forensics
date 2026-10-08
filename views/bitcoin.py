@@ -4,9 +4,8 @@ import streamlit as st
 from src import config
 from src.dashboard_data import load_decisions, load_outputs, plot_neighbourhood, reasons_table, record_decision, review_queue
 from src.live import store
-from views.common import analyst, band_badge, lead_notice, open_case_button
+from views.common import analyst, band_badge, lead_notice, open_case_button, page_header
 
-st.title(":material/currency_bitcoin: Bitcoin transactions")
 
 if not (config.OUTPUT_DIR / "meta.json").exists():
     st.error("The Bitcoin model has not been trained on this server yet. Run `python run_pipeline.py`.")
@@ -21,9 +20,10 @@ def data():
 meta, scored, expl, nodes, G = data()
 if meta["synthetic_data"]:
     st.warning("The model on this server was trained on generated data, not the Elliptic dataset.")
-st.caption(f"Model {meta['model']} · {meta['feature_set']} · version {meta['model_version']} · alert threshold "
-           f"{meta['threshold']:.3f} (precision target {meta['precision_target']:.0%}) · "
-           f"{len(scored):,} scored transactions in the evaluation period")
+page_header("Investigate · Bitcoin", "Transaction risk alerts",
+            "A graph machine-learning model scores Bitcoin transactions, explains each alert and shows its flow of funds.",
+            {"Model": meta["model"], "Version": meta["model_version"], "Threshold": f"{meta['threshold']:.3f}",
+             "Scored": f"{len(scored):,} transactions"})
 lead_notice()
 
 tab_review, tab_results, tab_log = st.tabs(["Case review", "Model performance", "Analyst decisions"])
@@ -61,7 +61,7 @@ with tab_review:
         m1.metric("Risk score", f"{row['score']:.3f}")
         m2.metric("Band", row["band"])
         m3.metric("Time step", int(row["time_step"]))
-        m4.metric("Elliptic label", {1: "illicit", 0: "licit"}.get(int(row["label"]), "unknown"))
+        m4.metric("Elliptic label", {1: "Illicit", 0: "Licit"}.get(int(row["label"]), "Unknown"))
 
         st.markdown("**Why was this flagged?**")
         rt = reasons_table(expl, tx_id)

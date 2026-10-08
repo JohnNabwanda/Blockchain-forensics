@@ -4,11 +4,11 @@ import json
 import streamlit as st
 
 from src.live import store
-from views.common import BAND_COLOR, analyst
+from views.common import BAND_COLOR, analyst, page_header
 
 MODULES = {"bitcoin": "Bitcoin", "tron": "TRON / USDT", "contract": "Smart contract", "mobile_money": "Mobile money"}
 
-st.title(":material/folder_open: Cases")
+page_header("Casework", "Cases", "Every lead opened from any module, with status, assignee and full history.")
 
 c1, c2 = st.columns(2)
 status = c1.multiselect("Status", store.STATUSES, default=["Open", "Escalated"])

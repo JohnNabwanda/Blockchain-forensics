@@ -68,5 +68,6 @@ nav = st.navigation({
         st.Page("views/watchlist.py", title="Watchlist", icon=":material/visibility:"),
         st.Page("views/audit.py", title="Audit log", icon=":material/history:"),
     ],
+    "Evidence": [st.Page("views/research.py", title="Research results", icon=":material/science:")],
 })
 nav.run()

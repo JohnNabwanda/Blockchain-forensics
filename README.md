@@ -89,6 +89,9 @@ streamlit run app.py                     # http://localhost:8501
 - **TRON module:** needs internet access. An optional TronGrid API key (`[tron] api_key`) raises rate limits.
 - Cases, watchlist and audit log are stored in `data/platform.db` (SQLite, git-ignored).
 
+- **Research results:** the Phase 1–3 evaluation dashboards from `outputs/` are shown inside the platform
+  (build them with the `build_*dashboard.py` scripts).
+
 Code: `app.py` (sign-in and navigation), `views/` (one file per page), `src/live/` (TRON client and
 risk indicators, contract scanner, mobile-money matching, case store).
 

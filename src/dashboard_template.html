@@ -203,7 +203,7 @@ footer{color:var(--ink-3);font-size:12px;max-width:80ch}
 
 <div class="wrap" id="app">
   <header>
-    <div class="topbar"><div class="eyebrow">Blockchain forensics · proof of concept</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a><a data-page="phase3" href="#">Phase 3<span> · Smart contracts</span></a></nav></div>
+    <div class="topbar"><div class="eyebrow">Blockchain forensics · Phase 1 · Bitcoin detection</div><nav class="switcher" aria-label="Dashboards"><a data-page="phase1" href="#">Phase 1<span> · Bitcoin detection</span></a><a data-page="phase2" href="#">Phase 2<span> · Cash-out tracing</span></a><a data-page="phase3" href="#">Phase 3<span> · Smart contracts</span></a></nav></div>
     <h1>Illicit transaction detection on Elliptic Bitcoin data</h1>
     <div class="runline" id="runline"></div>
   </header>
@@ -366,7 +366,7 @@ const verdicts = [
   {h: "H2", t: "Graph information helps", ok: h2, big: `+${fmt(sBest - s1)}`, unit: "PR-AUC",
    p: `PR-AUC rises from ${fmt(s1)} with transaction features only to ${fmt(sBest)} with graph information added.`},
   {h: "H3", t: "Results are explainable", ok: null, big: `${D.cases.length}`, unit: "cases with reasons",
-   p: `Every case below lists its main contributing features and its payment neighbourhood. Clarity is judged by analysts in the demo.`},
+   p: `Every case below lists its main contributing features and its payment neighbourhood. Clarity is judged by the analysts who review the alerts.`},
 ];
 $("#verdicts").innerHTML = verdicts.map(v => `
   <article class="verdict">

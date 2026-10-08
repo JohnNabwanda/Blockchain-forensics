@@ -7,6 +7,10 @@ public Elliptic Bitcoin dataset:
 - **H2, graph information helps.** Graph features raise PR-AUC over transaction-only features.
 - **H3, results are explainable.** Every flag comes with its main reasons and its payment neighbourhood.
 
+## Architecture
+
+![Integrated blockchain forensics architecture](docs/architecture.png)
+
 ## 1. Setup
 
 Requires Python 3.10 or newer.

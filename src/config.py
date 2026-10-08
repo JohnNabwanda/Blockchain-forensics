@@ -1,4 +1,4 @@
-"""Central settings for the PoC. Change values here, not inside the pipeline code."""
+"""Central settings for the pipelines and the investigation platform. Change values here, not inside the code."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,3 +81,20 @@ def switcher_links(page):
     here = DASHBOARD_FILES[page].parent
     local = {k: os.path.relpath(p, here).replace(os.sep, "/") for k, p in DASHBOARD_FILES.items()}
     return {"current": page, "web": local, "local": local}
+
+
+# ---------------------------------------------------------------- investigation platform (app.py)
+PLATFORM_DB = ROOT / "data" / "platform.db"      # cases, audit log and watchlist (git-ignored)
+SECRETS_FILE = ROOT / ".streamlit" / "secrets.toml"
+SLITHER_ENV = ROOT / ".venv-phase3"              # separate environment that has Slither installed
+CONTRACT_SCAN_TIMEOUT_S = 240
+
+
+def secret(section, key, default=None):
+    """A value from .streamlit/secrets.toml, readable outside Streamlit too."""
+    import tomllib
+    try:
+        with open(SECRETS_FILE, "rb") as f:
+            return tomllib.load(f).get(section, {}).get(key, default)
+    except FileNotFoundError:
+        return default

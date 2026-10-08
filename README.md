@@ -1,11 +1,21 @@
-# AI-Powered Blockchain Forensics: Proof of Concept
+# AI-Powered Blockchain Forensics Platform
 
-Code for the two-week PoC described in the revised concept note. It tests three hypotheses on the
-public Elliptic Bitcoin dataset:
+An investigation platform for tracing illicit crypto flows, built for law-enforcement and financial
+intelligence analysts. One sign-in gives access to four modules that share a case register, a wallet
+watchlist and an audit trail:
 
-- **H1, detection works.** Illicit-class precision of at least 0.90 on later time steps.
-- **H2, graph information helps.** Graph features raise PR-AUC over transaction-only features.
-- **H3, results are explainable.** Every flag comes with its main reasons and its payment neighbourhood.
+| Module | What it does | Data |
+|---|---|---|
+| **Bitcoin transactions** | Graph machine-learning model scores transactions, explains each alert and shows its flow of funds | Elliptic Bitcoin transaction graph (203,769 real transactions) |
+| **TRON / USDT wallets** | Enter any wallet: fetches its USDT transfers live, scores risk from transparent indicators, checks the watchlist, traces funds forward and backward | Live TRON blockchain (TronGrid API) |
+| **Smart-contract audit** | Upload or paste Solidity source: compiles it with the right compiler and runs Slither, findings shown on the source lines | Any contract |
+| **Mobile-money attribution** | Import a P2P trader's mobile-money statement; payments are matched to the trader's live USDT transfers to link wallets to accounts | Operator statement obtained under lawful process |
+
+Every score is a lead for analyst review. Confirming, dismissing or closing a case needs a written
+justification, and every sign-in, lookup, scan and decision is recorded in the audit log.
+
+The research behind the models (Elliptic experiments, synthetic TRON/mobile-money world, SmartBugs
+benchmark) is described further down and can be reproduced with the `run_*.py` scripts.
 
 ## Architecture
 
@@ -63,25 +73,24 @@ send to reviewers. It needs no server. It shows:
 
 Hover over any chart for exact values.
 
-## 5. Open the analyst app
+## 5. Run the platform
 
 ```bash
-streamlit run app.py
+pip install -r requirements.txt          # main environment
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # then set investigator accounts
+streamlit run app.py                     # http://localhost:8501
 ```
 
-To require a demo login, copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml` and set a
-username and password (the real file is git-ignored). Without it the app opens without a login.
+- **Accounts:** one line per investigator under `[auth.users]` in `.streamlit/secrets.toml` (git-ignored).
+  Without that file the platform opens without sign-in.
+- **Bitcoin module:** needs the trained model outputs (`python run_pipeline.py`, step 3).
+- **Smart-contract module:** needs Slither in `.venv-phase3` and Solidity compilers
+  (`.venv-phase3/bin/solc-select install 0.8.26 0.7.6 0.6.12 0.5.0 0.4.25`), see Phase 3 below.
+- **TRON module:** needs internet access. An optional TronGrid API key (`[tron] api_key`) raises rate limits.
+- Cases, watchlist and audit log are stored in `data/platform.db` (SQLite, git-ignored).
 
-To serve the three dashboards on the same machine, run `python -m http.server 8000 --directory outputs`
-and open `http://localhost:8000/dashboard.html`.
-
-It has three tabs:
-
-- **Case review:** a queue of flagged transactions. Each case shows the risk score, the reasons,
-  and the neighbourhood graph, plus Confirm / Dismiss / Escalate buttons with a required justification.
-- **Model results:** the report and charts.
-- **Decision log:** every analyst decision, with the model version and threshold. It can be
-  downloaded as a CSV.
+Code: `app.py` (sign-in and navigation), `views/` (one file per page), `src/live/` (TRON client and
+risk indicators, contract scanner, mobile-money matching, case store).
 
 ## What the pipeline does
 

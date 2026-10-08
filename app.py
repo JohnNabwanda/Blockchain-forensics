@@ -1,134 +1,72 @@
-"""Investigator dashboard for the PoC.   Run:  streamlit run app.py"""
+"""Blockchain forensics investigation platform.   Run:  streamlit run app.py
+
+Modules: Bitcoin transaction risk, live TRON/USDT wallet investigation, smart-contract audit,
+mobile-money attribution, and a shared case register with an audit trail.
+"""
 import hmac
 
-import pandas as pd
 import streamlit as st
 
-from src import config
-from src.dashboard_data import (load_decisions, load_outputs, plot_neighbourhood, reasons_table,
-                                record_decision, review_queue)
+from src.live import store
 
-st.set_page_config(page_title="Blockchain Forensics PoC", layout="wide")
+st.set_page_config(page_title="Blockchain Forensics Platform", page_icon=":material/policy:", layout="wide")
 
 
-def login_ok():
-    """Demo login. Credentials come from .streamlit/secrets.toml ([auth] username, password);
-    without that file the app runs open."""
+def users():
+    """Analyst accounts from .streamlit/secrets.toml: [auth.users] name = "password"
+    (or the older [auth] username/password). Empty means no login is required."""
     try:
         auth = st.secrets["auth"]
     except (KeyError, FileNotFoundError, st.errors.StreamlitSecretNotFoundError):
-        return True
-    if st.session_state.get("user"):
-        return True
-    st.title("Blockchain Forensics: Proof of Concept")
-    with st.form("login"):
-        user = st.text_input("Username")
-        pw = st.text_input("Password", type="password")
-        if st.form_submit_button("Sign in"):
-            if hmac.compare_digest(user, auth["username"]) and hmac.compare_digest(pw, auth["password"]):
-                st.session_state["user"] = user
-                st.rerun()
-            st.error("Wrong username or password.")
-    return False
+        return {}
+    accounts = dict(auth.get("users", {}))
+    if "username" in auth:
+        accounts[auth["username"]] = auth["password"]
+    return accounts
 
 
-if not login_ok():
+def login(accounts):
+    _, mid, _ = st.columns([1, 1.2, 1])
+    with mid:
+        st.markdown("## :material/policy: Blockchain Forensics Platform")
+        st.caption("Authorised investigators only. All activity is recorded in the audit log.")
+        with st.form("login"):
+            user = st.text_input("Username")
+            pw = st.text_input("Password", type="password")
+            if st.form_submit_button("Sign in", type="primary", width="stretch"):
+                if user in accounts and hmac.compare_digest(pw, str(accounts[user])):
+                    st.session_state["user"] = user
+                    store.log(user, "signed in")
+                    st.rerun()
+                store.log(user or "(blank)", "failed sign-in")
+                st.error("Wrong username or password.")
+
+
+accounts = users()
+if accounts and not st.session_state.get("user"):
+    login(accounts)
     st.stop()
+st.session_state.setdefault("user", "analyst")
 
-if not (config.OUTPUT_DIR / "meta.json").exists():
-    st.error("No results yet. Run `python run_pipeline.py` first.")
-    st.stop()
+with st.sidebar:
+    st.markdown(f"**:material/badge: {st.session_state['user']}**")
+    if accounts and st.button("Sign out", icon=":material/logout:"):
+        store.log(st.session_state["user"], "signed out")
+        st.session_state.clear()
+        st.rerun()
 
-
-@st.cache_resource
-def data():
-    return load_outputs()
-
-
-meta, scored, expl, nodes, G = data()
-
-st.title("Blockchain Forensics: Proof of Concept")
-if meta["synthetic_data"]:
-    st.warning("Running on SYNTHETIC data. Results only demonstrate the software, not real detection performance.")
-st.caption(f"Model {meta['model']} on {meta['feature_set']} · version {meta['model_version']} · "
-           f"threshold {meta['threshold']:.3f} (precision target {meta['precision_target']:.2f}) · "
-           f"explanations: {meta['explanation_method']}")
-st.info("Risk scores are leads for human review, not findings. No automatic action is taken against any "
-        "transaction, person or account, and nothing leaves this tool without analyst sign-off.")
-
-tab_review, tab_results, tab_log = st.tabs(["Case review", "Model results", "Decision log"])
-
-# ---------------------------------------------------------------- case review
-with tab_review:
-    c1, c2 = st.columns([1, 2])
-    with c1:
-        bands = st.multiselect("Risk bands", ["High", "Medium"], default=["High"])
-        steps = sorted(scored["time_step"].unique())
-        step = st.selectbox("Time step", ["All"] + [int(s) for s in steps])
-        q = review_queue(scored, bands=bands or ["High"], step=None if step == "All" else step)
-        st.metric("Cases in queue", len(q), help="Unreviewed cases are listed first, highest score first")
-        if q.empty:
-            st.write("No cases match these filters.")
-            st.stop()
-        labels = {f"{r.txId}  ·  score {r.score:.2f}  ·  {r.band}{'  ✓' if r.reviewed else ''}": r.txId
-                  for r in q.itertuples()}
-        tx_id = labels[st.selectbox("Select case", list(labels))]
-        row = scored[scored["txId"] == tx_id].iloc[0]
-
-    with c2:
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Risk score", f"{row['score']:.3f}")
-        m2.metric("Band", row["band"])
-        m3.metric("Time step", int(row["time_step"]))
-        m4.metric("Elliptic label*", {1: "illicit", 0: "licit"}.get(int(row["label"]), "unknown"))
-        st.caption("*Ground-truth label, shown only because this is an evaluation on labelled data.")
-
-        st.subheader("Why was this flagged?")
-        rt = reasons_table(expl, tx_id)
-        if rt.empty:
-            st.write("No positive contributing features recorded.")
-        else:
-            st.bar_chart(rt.set_index("description")["contribution"], horizontal=True)
-            st.dataframe(rt.rename(columns={"description": "Reason", "feature": "Feature", "value": "Value",
-                                            "contribution": "Push towards illicit"}),
-                         hide_index=True)
-
-        st.subheader("Where does it sit in the flow of funds?")
-        st.caption("Colour = model risk score of each neighbouring transaction, including unlabelled ones.")
-        hops = st.radio("Neighbourhood depth", [1, 2], horizontal=True)
-        st.pyplot(plot_neighbourhood(G, tx_id, nodes, hops=hops))
-
-    st.divider()
-    st.subheader("Analyst decision")
-    with st.form("decision", clear_on_submit=True):
-        d1, d2 = st.columns([1, 3])
-        analyst = d1.text_input("Analyst")
-        decision = d1.radio("Decision", ["Confirm", "Dismiss", "Escalate"])
-        why = d2.text_area("Justification (required)", height=120)
-        if st.form_submit_button("Record decision"):
-            try:
-                record_decision(tx_id, decision, why, analyst, row, meta)
-                st.success(f"{decision} recorded for {tx_id}.")
-            except ValueError as e:
-                st.error(str(e))
-
-# ---------------------------------------------------------------- results
-with tab_results:
-    report = (config.OUTPUT_DIR / "report.md").read_text()
-    st.markdown(report)
-    for img, cap in [("pr_curves.png", "Precision-recall with and without graph features"),
-                     ("model_comparison.png", "All models and feature sets"),
-                     ("per_step_test.png", "Performance across test time steps")]:
-        p = config.OUTPUT_DIR / img
-        if p.exists():
-            st.image(str(p), caption=cap)
-
-# ---------------------------------------------------------------- log
-with tab_log:
-    log = load_decisions()
-    st.write(f"{len(log)} decisions recorded. Dismissed flags feed threshold recalibration and retraining.")
-    if not log.empty:
-        st.dataframe(log.sort_values("timestamp_utc", ascending=False), hide_index=True)
-        counts = log["decision"].value_counts()
-        st.bar_chart(counts)
-        st.download_button("Download log (CSV)", log.to_csv(index=False), "decisions.csv", "text/csv")
+nav = st.navigation({
+    "": [st.Page("views/overview.py", title="Overview", icon=":material/space_dashboard:", default=True)],
+    "Investigate": [
+        st.Page("views/bitcoin.py", title="Bitcoin transactions", icon=":material/currency_bitcoin:"),
+        st.Page("views/tron.py", title="TRON / USDT wallets", icon=":material/account_balance_wallet:"),
+        st.Page("views/contracts.py", title="Smart-contract audit", icon=":material/data_object:"),
+        st.Page("views/mobile_money.py", title="Mobile-money attribution", icon=":material/phone_android:"),
+    ],
+    "Casework": [
+        st.Page("views/cases.py", title="Cases", icon=":material/folder_open:"),
+        st.Page("views/watchlist.py", title="Watchlist", icon=":material/visibility:"),
+        st.Page("views/audit.py", title="Audit log", icon=":material/history:"),
+    ],
+})
+nav.run()

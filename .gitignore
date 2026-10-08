@@ -9,3 +9,5 @@ data/phase2_stress/
 data/phase3/
 .~lock.*#
 .streamlit/secrets.toml
+data/platform.db
+data/contract_scans/

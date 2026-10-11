@@ -5,12 +5,13 @@ Modules: live TRON, Ethereum and Bitcoin investigation, cross-chain tracing, sma
 shared entity graph; case workspace with review queue, feedback loop, roles, a hash-chained audit
 log and evidence packs with chain of custody.
 """
-import hmac
+import time
 
 import streamlit as st
 
 from src.live import store
-from views.common import PERMISSIONS, apply_style, page_header
+from views import signin
+from views.common import apply_style
 
 st.set_page_config(page_title="Blockchain Forensics Platform", page_icon=":material/policy:", layout="wide")
 apply_style()
@@ -31,28 +32,16 @@ def users():
     return accounts, roles
 
 
-def login(accounts):
-    _, mid, _ = st.columns([1, 1.2, 1])
-    with mid:
-        st.space("large")
-        page_header("Investigation platform", "Sign in", "Authorised investigators only. All activity is recorded in the audit log.")
-        with st.form("login"):
-            user = st.text_input("Username")
-            pw = st.text_input("Password", type="password")
-            if st.form_submit_button("Sign in", type="primary", width="stretch"):
-                if user in accounts and hmac.compare_digest(pw, str(accounts[user])):
-                    st.session_state["user"] = user
-                    st.session_state["role"] = roles[user] if roles[user] in PERMISSIONS else "viewer"
-                    store.log(user, "signed in", detail=f"role {st.session_state['role']}")
-                    st.rerun()
-                store.log(user or "(blank)", "failed sign-in")
-                st.error("Wrong username or password.")
-
-
 accounts, roles = users()
+IDLE_LIMIT = 30 * 60          # seconds without any interaction before the session is closed
+if accounts and st.session_state.get("user") and time.time() - st.session_state.get("seen", time.time()) > IDLE_LIMIT:
+    store.log(st.session_state["user"], "session expired", detail="30 minutes inactive")
+    st.session_state.clear()
+    st.session_state["signin_notice"] = ["Your session expired after 30 minutes of inactivity. Sign in again."]
 if accounts and not st.session_state.get("user"):
-    login(accounts)
+    signin.render(accounts, roles)
     st.stop()
+st.session_state["seen"] = time.time()
 st.session_state.setdefault("user", "analyst")
 st.session_state.setdefault("role", "supervisor" if not accounts else "viewer")
 
@@ -85,4 +74,7 @@ nav = st.navigation({
         st.Page("views/research.py", title="Research results", icon=":material/science:"),
     ],
 })
+landing = st.session_state.pop("landing", None)
+if landing:
+    st.switch_page(landing)
 nav.run()

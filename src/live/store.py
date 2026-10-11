@@ -208,6 +208,14 @@ def case(case_id):
     return (c.iloc[0] if len(c) else None), a
 
 
+def last_case(analyst):
+    """The case this analyst last worked on (latest audit entry with a case), or None."""
+    with db() as con:
+        r = con.execute("SELECT a.case_id FROM audit a JOIN cases c ON c.id = a.case_id "
+                        "WHERE a.analyst=? ORDER BY a.id DESC LIMIT 1", (analyst,)).fetchone()
+    return r[0] if r else None
+
+
 def audit(limit=500):
     with db() as con:
         return pd.read_sql_query("SELECT * FROM audit ORDER BY id DESC LIMIT ?", con, params=[limit])

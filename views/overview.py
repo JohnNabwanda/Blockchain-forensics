@@ -30,8 +30,6 @@ m[2].metric("Entities in graph", f"{sum(n_ent.values()):,}", f"{sum(n_link.value
 m[3].metric("Watched wallets", len(store.watchlist()))
 m[4].metric("Bitcoin model alerts", alerts if alerts is not None else "-")
 
-if "jump_addr" in st.session_state:              # address given on the sign-in screen
-    st.session_state["any_addr"] = st.session_state.pop("jump_addr")
 with st.form("quick_any"):
     c1, c2 = st.columns([5, 1], vertical_alignment="bottom")
     addr = c1.text_input("Investigate any address", key="any_addr", placeholder="TRON T…, Ethereum 0x… or Bitcoin bc1… / 1… / 3…")

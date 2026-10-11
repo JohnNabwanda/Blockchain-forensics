@@ -11,3 +11,5 @@ data/phase3/
 .streamlit/secrets.toml
 data/platform.db
 data/contract_scans/
+.streamlit/secrets*.toml
+data/*.db

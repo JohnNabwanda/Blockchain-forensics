@@ -75,6 +75,18 @@ lead_notice()
 if pairs.empty:
     st.warning("No payment matched a transfer within the time window and plausible exchange-rate spread.")
     st.stop()
+if src == "Import a case":          # real imports go into the shared entity graph (the training sample does not)
+    for w in wallets:
+        store.upsert_entity(analyst(), "tron", w, label="P2P trader wallet", module="mobile_money")
+    for r in pairs.itertuples():
+        store.upsert_entity(analyst(), "mm", r.mm_account, kind="mm_account", risk_band=r.confidence,
+                            label=f"mobile-money account ({r.confidence} confidence)", module="mobile_money")
+    store.ensure_entities(analyst(), [store.eid("tron", r.wallet) for r in pairs.itertuples()], "mobile_money")
+    store.add_links(analyst(), [{"src": store.eid("tron", r.wallet), "dst": store.eid("mm", r.mm_account),
+                                 "kind": "attribution", "chain": "tron->mobile_money", "asset": "USDT",
+                                 "amount": float(r.usdt), "amount_usd": float(r.usdt), "confidence": r.confidence,
+                                 "tx_id": f"pair:{r.trades}", "detail": f"{r.trades} matched trades, {r.tzs:,.0f} TZS"}
+                                for r in pairs.itertuples()], "mobile_money")
 
 st.subheader("Attributed pairs")
 levels = st.multiselect("Confidence", ["High", "Medium", "Low"], default=["High", "Medium"])
@@ -99,7 +111,8 @@ c1, c2, c3 = st.columns(3)
 with c1:
     open_case_button("mobile_money", f"{p['wallet']}|{p['mm_account']}", f"Attribution {p['wallet'][:8]}… ↔ {p['mm_account']}",
                      None, p["confidence"], summary=f"{p['trades']} matched trades, {p['usdt']:,.0f} USDT",
-                     evidence={"pair": p.to_dict(), "trades": sel.to_dict("records")})
+                     evidence={"pair": p.to_dict(), "trades": sel.to_dict("records")},
+                     entity_id=store.eid("mm", p["mm_account"]) if src == "Import a case" else None)
 with c2:
     if st.button("Investigate wallet", icon=":material/arrow_forward:") and src == "Import a case":
         st.session_state["tron_addr"] = p["wallet"]

@@ -1,18 +1,33 @@
 # AI-Powered Blockchain Forensics Platform
 
 An investigation platform for tracing illicit crypto flows, built for law-enforcement and financial
-intelligence analysts. One sign-in gives access to four modules that share a case register, a wallet
-watchlist and an audit trail:
+intelligence analysts. Every module writes what it finds into **one shared entity graph** (wallets,
+contracts, transactions and mobile-money accounts, and the flows between them), so one case can be
+followed across TRON, Ethereum, Bitcoin and mobile money:
 
 | Module | What it does | Data |
 |---|---|---|
-| **Bitcoin transactions** | Graph machine-learning model scores transactions, explains each alert and shows its flow of funds | Elliptic Bitcoin transaction graph (203,769 real transactions) |
-| **TRON / USDT wallets** | Enter any wallet: fetches its USDT transfers live, scores risk from transparent indicators, checks the watchlist, traces funds forward and backward | Live TRON blockchain (TronGrid API) |
-| **Smart-contract audit** | Upload or paste Solidity source: compiles it with the right compiler and runs Slither, findings shown on the source lines | Any contract |
-| **Mobile-money attribution** | Import a P2P trader's mobile-money statement; payments are matched to the trader's live USDT transfers to link wallets to accounts | Operator statement obtained under lawful process |
+| **TRON / USDT wallets** | Enter any wallet: live USDT transfers, transparent risk indicators, watchlist check, fund-flow trace forward and backward | Live TRON (TronGrid) |
+| **Ethereum wallets** | Live USDT, USDC and ETH transfers; public labels (OFAC sanctions, mixers, addresses frozen by the stablecoin issuer, exchanges); trace; audit of the deployed contract | Live Ethereum (Blockscout) |
+| **Bitcoin addresses** | Live transactions valued in USD at the day's price, CoinJoin (mixing) detection, indicators, trace | Live Bitcoin (mempool.space) |
+| **Cross-chain tracing** | Same-key twins (a TRON and an Ethereum address derived from one private key) and hop matching: money leaving one chain matched to money arriving on another by amount and time, through bridges and exchanges | Live, all three chains |
+| **Smart-contract audit** | Upload or paste Solidity, or give a deployed Ethereum address: verified source is fetched and compiled with its deployed compiler, Slither findings shown on the source lines | Any contract |
+| **Mobile-money attribution** | Import a P2P trader's statement; payments are matched to the trader's live USDT transfers to link wallets to accounts | Operator statement obtained under lawful process |
+| **Bitcoin graph model** | Graph machine-learning model scores transactions, explains each alert and shows its flow of funds | Elliptic dataset (203,769 real transactions) |
 
-Every score is a lead for analyst review. Confirming, dismissing or closing a case needs a written
-justification, and every sign-in, lookup, scan and decision is recorded in the audit log.
+Casework on top of the graph:
+
+- **Case workspace:** each case has a review queue of leads (wallets, contracts, accounts attached from any
+  module), a case graph across chains, one timeline of flows and analyst actions, and an evidence pack.
+- **Continuous feedback loop:** every lead an analyst confirms or dismisses is stored with its score;
+  after each decision the module's High band is re-chosen so that at least 80% of reviewed High leads were
+  confirmed (the H1 follow-up, running live). The Bitcoin model's threshold is recalibrated the same way.
+- **Governance:** roles (viewer, investigator, supervisor; only supervisors close cases or remove
+  watchlist entries); a hash-chained audit log (each entry includes the SHA-256 of the previous one,
+  so any edit or deletion is detected); evidence packs (zip with report, graph, timeline, audit trail and a
+  SHA-256 manifest) entered in a chain-of-custody register and verifiable on upload.
+
+Every score is a lead for analyst review, not a finding.
 
 The research behind the models (Elliptic experiments, synthetic TRON/mobile-money world, SmartBugs
 benchmark) is described further down and can be reproduced with the `run_*.py` scripts.
@@ -81,19 +96,29 @@ cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # then set investig
 streamlit run app.py                     # http://localhost:8501
 ```
 
-- **Accounts:** one line per investigator under `[auth.users]` in `.streamlit/secrets.toml` (git-ignored).
-  Without that file the platform opens without sign-in.
-- **Bitcoin module:** needs the trained model outputs (`python run_pipeline.py`, step 3).
+- **Accounts:** one line per user under `[auth.users]` in `.streamlit/secrets.toml` (git-ignored), and a role
+  per user under `[auth.roles]` (`viewer`, `investigator` or `supervisor`; default `investigator`).
+  Without that file the platform opens without sign-in, with full rights.
+- **Bitcoin graph model:** needs the trained model outputs (`python run_pipeline.py`, step 3).
 - **Smart-contract module:** needs Slither in `.venv-phase3` and Solidity compilers
   (`.venv-phase3/bin/solc-select install 0.8.26 0.7.6 0.6.12 0.5.0 0.4.25`), see Phase 3 below.
-- **TRON module:** needs internet access. An optional TronGrid API key (`[tron] api_key`) raises rate limits.
-- Cases, watchlist and audit log are stored in `data/platform.db` (SQLite, git-ignored).
+- **Live modules:** need internet access (TronGrid, Blockscout and mempool.space; no keys required).
+  An optional TronGrid API key (`[tron] api_key`) raises TRON rate limits.
+- Cases, entity graph, leads, thresholds, custody register and audit log are stored in `data/platform.db`
+  (SQLite, git-ignored). A database from an earlier version is upgraded on first start.
 
 - **Research results:** the Phase 1–3 evaluation dashboards from `outputs/` are shown inside the platform
   (build them with the `build_*dashboard.py` scripts).
 
-Code: `app.py` (sign-in and navigation), `views/` (one file per page), `src/live/` (TRON client and
-risk indicators, contract scanner, mobile-money matching, case store).
+Code: `app.py` (sign-in, roles and navigation), `views/` (one file per page), `src/live/`: `store.py`
+(entity graph, cases, leads, audit chain, custody), `flows.py` (indicators and tracing shared by all chains),
+`tron.py`, `ethereum.py`, `bitcoin_live.py`, `crosschain.py`, `contracts.py`, `mobile_money.py`,
+`feedback.py` (threshold recalibration) and `evidence.py` (evidence packs).
+
+Limits to state plainly: hop matching is a heuristic (amount and time), to be confirmed with the bridge's or
+exchange's records; same-key twins are rare because most wallets derive TRON and Ethereum keys separately;
+ETH values use today's price; live Bitcoin addresses are scored with indicators, not the Elliptic model,
+whose features are anonymised and cannot be computed for new transactions.
 
 ## What the pipeline does
 

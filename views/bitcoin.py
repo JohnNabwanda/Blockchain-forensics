@@ -3,7 +3,8 @@ import streamlit as st
 
 from src import config
 from src.dashboard_data import load_decisions, load_outputs, plot_neighbourhood, reasons_table, record_decision, review_queue
-from src.live import store
+from src.live import feedback, store
+from src.models import risk_band
 from views.common import analyst, band_badge, lead_notice, open_case_button, page_header
 
 
@@ -18,11 +19,15 @@ def data():
 
 
 meta, scored, expl, nodes, G = data()
+recal = feedback.bitcoin_threshold(load_decisions(), meta["threshold"])
+if recal["changed"]:        # feedback loop: analyst decisions moved the alert threshold
+    scored = scored.assign(band=scored["score"].map(lambda x: risk_band(x, recal["threshold"])))
 if meta["synthetic_data"]:
     st.warning("The model on this server was trained on generated data, not the Elliptic dataset.")
 page_header("Investigate · Bitcoin", "Transaction risk alerts",
             "A graph machine-learning model scores Bitcoin transactions, explains each alert and shows its flow of funds.",
-            {"Model": meta["model"], "Version": meta["model_version"], "Threshold": f"{meta['threshold']:.3f}",
+            {"Model": meta["model"], "Version": meta["model_version"],
+             "Threshold": f"{recal['threshold']:.3f}" + (" (recalibrated)" if recal["changed"] else ""),
              "Scored": f"{len(scored):,} transactions"})
 lead_notice()
 
@@ -75,9 +80,21 @@ with tab_review:
         st.markdown("**Flow of funds**")
         hops = st.radio("Neighbourhood depth", [1, 2], horizontal=True)
         st.pyplot(plot_neighbourhood(G, tx_id, nodes, hops=hops))
+        tx_entity = store.eid("btc-tx", str(tx_id))
+        if store.entity(tx_entity) is None:
+            store.upsert_entity(analyst(), "btc-tx", str(tx_id), kind="transaction", risk_score=float(row["score"]) * 100,
+                                risk_band=row["band"], module="bitcoin", label="Elliptic dataset transaction",
+                                reasons=list(rt["description"].head(3)) if not rt.empty else None)
+            nb = [n for n in G.successors(tx_id)] + [n for n in G.predecessors(tx_id)]
+            store.ensure_entities(analyst(), [store.eid("btc-tx", str(n)) for n in nb], "bitcoin")
+            store.add_links(analyst(), [{"src": store.eid("btc-tx", str(a)), "dst": store.eid("btc-tx", str(b)),
+                                         "kind": "transfer", "chain": "btc", "detail": "Elliptic payment edge"}
+                                        for a, b in [(tx_id, n) for n in G.successors(tx_id)]
+                                        + [(n, tx_id) for n in G.predecessors(tx_id)]], "bitcoin")
         open_case_button("bitcoin", str(tx_id), f"Bitcoin transaction {tx_id}", float(row["score"]) * 100, row["band"],
                          summary="; ".join(rt["description"].head(3)) if not rt.empty else "",
-                         evidence={"score": float(row["score"]), "time_step": int(row["time_step"])})
+                         evidence={"score": float(row["score"]), "time_step": int(row["time_step"])},
+                         entity_id=tx_entity)
 
     st.divider()
     st.subheader("Analyst decision")

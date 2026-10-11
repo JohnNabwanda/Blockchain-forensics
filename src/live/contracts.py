@@ -11,6 +11,7 @@ import tempfile
 from pathlib import Path
 
 from .. import config
+from . import feedback
 from ..phase3.scan import SOLC_DIR, _lines
 
 SEVERITY_ORDER = {"High": 0, "Medium": 1, "Low": 2, "Informational": 3, "Optimization": 4}
@@ -63,16 +64,33 @@ def pick_solc(source):
 
 def scan_source(source, filename="Contract.sol", include_low=True):
     """Compile and analyse one Solidity file. Returns a dict with findings, solc version and errors."""
-    solc, err = pick_solc(source)
-    sha = hashlib.sha256(source.encode()).hexdigest()
-    result = {"filename": filename, "sha256": sha, "solc": solc, "lines": source.count("\n") + 1,
-              "findings": [], "error": err, "contracts": re.findall(r"^\s*(?:abstract\s+)?contract\s+(\w+)", source, re.M)}
+    return scan_files({Path(filename).name: source}, Path(filename).name, include_low=include_low)
+
+
+def scan_files(files, main, include_low=True, solc_version=None, address=None):
+    """Compile and analyse a Solidity project ({relative path: source}) from its `main` file, e.g. the
+    verified sources of a deployed contract. `solc_version` (the deployed compiler) is used when installed."""
+    source = files[main]
+    if solc_version and solc_version in installed_solc():
+        solc, err = solc_version, None
+    else:
+        solc, err = pick_solc(source)
+    sha = hashlib.sha256("\n".join(f"{p}\n{files[p]}" for p in sorted(files)).encode()).hexdigest() \
+        if len(files) > 1 else hashlib.sha256(source.encode()).hexdigest()
+    result = {"filename": Path(main).name, "sha256": sha, "solc": solc, "lines": source.count("\n") + 1,
+              "files": len(files), "address": address, "findings": [], "error": err,
+              "contracts": re.findall(r"^\s*(?:abstract\s+)?contract\s+(\w+)", source, re.M)}
     if err:
         return result
     SCAN_DIR.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as d:
-        path = Path(d) / Path(filename).name
-        path.write_text(source)
+        for rel, src in files.items():
+            p = (Path(d) / rel.lstrip("/")).resolve()
+            if not str(p).startswith(str(Path(d).resolve())):
+                continue                                  # ignore paths that escape the work folder
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(src)
+        path = Path(d) / main.lstrip("/")
         out = Path(d) / "out.json"
         cmd = [str(config.SLITHER_ENV / "bin" / "slither"), str(path), "--solc", str(SOLC_DIR / f"solc-{solc}" / f"solc-{solc}"),
                "--json", str(out), "--exclude-optimization"]
@@ -92,15 +110,19 @@ def scan_source(source, filename="Contract.sol", include_low=True):
     for f in d_json.get("results", {}).get("detectors", []):
         if not include_low and f["impact"] in ("Low", "Informational"):
             continue
+        els = [e for e in f["elements"] if e.get("type") == "node"] or f["elements"][:1]
+        file = next((e.get("source_mapping", {}).get("filename_relative") for e in els), None) or main
         result["findings"].append({"severity": f["impact"], "confidence": f["confidence"], "check": f["check"],
-                                   "lines": _lines(f), "description": f["description"].strip()})
+                                   "lines": _lines(f), "file": file, "in_main": Path(file).name == Path(main).name,
+                                   "description": f["description"].strip()})
     result["findings"].sort(key=lambda x: (SEVERITY_ORDER.get(x["severity"], 9), x["check"]))
     (SCAN_DIR / f"{sha[:16]}.json").write_text(json.dumps(result, indent=1))
     return result
 
 
 def risk(findings):
-    """0-100 contract risk from findings: High 30, Medium 10, Low 2 points each (capped)."""
+    """0-100 contract risk from findings in the contract's own file (not imported libraries):
+    High 30, Medium 10, Low 2 points each (capped)."""
     pts = {"High": 30, "Medium": 10, "Low": 2}
-    score = min(100, sum(pts.get(f["severity"], 0) for f in findings))
-    return score, ("High" if score >= 50 else "Medium" if score >= 20 else "Low")
+    score = min(100, sum(pts.get(f["severity"], 0) for f in findings if f.get("in_main", True)))
+    return score, feedback.band("contract", score)

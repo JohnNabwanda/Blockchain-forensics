@@ -122,6 +122,31 @@ def analyst():
     return st.session_state.get("user", "analyst")
 
 
+# Roles: viewer reads; investigator investigates, opens cases and reviews leads; supervisor also
+# closes cases, removes watchlist entries, verifies evidence and resets thresholds.
+PERMISSIONS = {
+    "viewer": set(),
+    "investigator": {"case", "lead", "watch", "export"},
+    "supervisor": {"case", "lead", "watch", "export", "close", "unwatch", "verify", "recalibrate"},
+}
+
+
+def role():
+    return st.session_state.get("role", "investigator")
+
+
+def can(action):
+    return action in PERMISSIONS.get(role(), set())
+
+
+def need(action, what="do this"):
+    """Show a notice and return False when the signed-in role may not perform `action`."""
+    if can(action):
+        return True
+    st.caption(f":material/lock: Your role ({role()}) cannot {what}.")
+    return False
+
+
 def band_badge(band, score=None):
     label = f"{band} risk" + (f" · {score:.0f}/100" if score is not None and score > 1 else "")
     st.badge(label, color=BAND_COLOR.get(band, "gray"), icon=":material/flag:")
@@ -132,10 +157,95 @@ def lead_notice():
                "No action is taken against any person or account without analyst sign-off.")
 
 
-def open_case_button(module, subject, title, score=None, band=None, summary="", evidence=None, key=None):
+def open_case_button(module, subject, title, score=None, band=None, summary="", evidence=None, key=None, entity_id=None):
+    if not need("case", "open cases"):
+        return
     if st.button("Open case", icon=":material/create_new_folder:", key=key or f"case-{module}-{subject}"):
-        case_id, new = store.open_case(analyst(), module, subject, title, score, band, summary, evidence)
+        case_id, new = store.open_case(analyst(), module, subject, title, score, band, summary, evidence,
+                                       entity_id=entity_id)
         if new:
             st.success(f"Case #{case_id} opened. Find it under **Cases**.")
         else:
+            if entity_id:
+                store.attach(analyst(), case_id, [entity_id], role="subject")
             st.info(f"An open case already exists for this subject: case #{case_id}.")
+
+
+def attach_to_case(entity_ids, key, label="Attach to case as leads"):
+    """Pick an open case and attach graph entities to it as leads for review."""
+    if not entity_ids or not need("case", "attach leads to cases"):
+        return
+    open_cases = store.cases(status=["Open", "Escalated"])
+    if open_cases.empty:
+        st.caption("Open a case first to attach these as leads.")
+        return
+    c1, c2 = st.columns([3, 1], vertical_alignment="bottom")
+    cid = c1.selectbox("Case", open_cases["id"], key=f"att-case-{key}",
+                       format_func=lambda i: f"#{i} · {open_cases.set_index('id').loc[i, 'title']}")
+    if c2.button(label, key=f"att-btn-{key}", icon=":material/attach_file:"):
+        n = store.attach(analyst(), int(cid), list(entity_ids))
+        st.success(f"{n} new lead(s) attached to case #{cid}." if n else "Already attached.")
+
+
+# ---------------------------------------------------------------- graph drawing (Graphviz)
+# Colours from the dashboards' palette (accent = signal, orange = illicit flow, amber = service)
+GRAPH_THEME = {
+    "dark": {"fill": "#101826", "line": "#2b3a50", "ink": "#e8f1fb", "muted": "#75859d", "accent": "#38d6f0",
+             "root_ink": "#060a12", "bad": "#ff8a3d", "bad_fill": "#2a1a12", "warn": "#fbbf24", "warn_fill": "#2a2410",
+             "ok": "#4ade80", "violet": "#a78bfa"},
+    "light": {"fill": "#ffffff", "line": "#b8c6d8", "ink": "#0c1524", "muted": "#627088", "accent": "#0a86a8",
+              "root_ink": "#ffffff", "bad": "#e25a1f", "bad_fill": "#fde8dc", "warn": "#d99a0b", "warn_fill": "#fdf3d6",
+              "ok": "#16a34a", "violet": "#7c3aed"},
+}
+CHAIN_TAG = {"tron": "TRON", "eth": "ETH", "btc": "BTC", "btc-tx": "BTC tx", "mm": "M-money", "contract": "contract"}
+
+
+def short(a):
+    a = str(a)
+    return a if len(a) <= 14 else f"{a[:6]}…{a[-4:]}"
+
+
+def _q(x):
+    return str(x).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def dot(nodes, edges, rankdir="LR"):
+    """nodes: {id: {label, sub, root, flag, service, status}}; edges: [(a, b, {label, width, style, color})]."""
+    c = GRAPH_THEME.get(st.context.theme.type, GRAPH_THEME["dark"])
+    lines = [f'digraph G {{ rankdir={rankdir}; bgcolor="transparent"; pad=0.2; nodesep=0.35; ranksep=0.9; '
+             f'node [shape=box, style="rounded,filled", fontname="JetBrains Mono", fontsize=10, margin="0.18,0.08", '
+             f'fillcolor="{c["fill"]}", color="{c["line"]}", fontcolor="{c["ink"]}", penwidth=1.2]; '
+             f'edge [fontname="JetBrains Mono", fontsize=9, color="{c["muted"]}", fontcolor="{c["muted"]}", arrowsize=0.7];']
+    for n, d in nodes.items():
+        label = _q(d.get("label") or short(n))
+        if d.get("sub"):
+            label += "\\n" + _q(d["sub"])[:40]
+        attrs = {"label": label}
+        if d.get("root"):
+            attrs.update(fillcolor=c["accent"], fontcolor=c["root_ink"], color=c["accent"], penwidth="2")
+        elif d.get("status") == "Confirmed":
+            attrs.update(fillcolor=c["bad_fill"], color=c["bad"], fontcolor=c["bad"], penwidth="2.4")
+        elif d.get("status") == "Dismissed":
+            attrs.update(color=c["ok"], fontcolor=c["muted"], style="rounded,filled,dashed")
+        elif d.get("flag"):
+            attrs.update(fillcolor=c["bad_fill"], color=c["bad"], fontcolor=c["bad"], penwidth="1.8")
+        elif d.get("service"):
+            attrs.update(fillcolor=c["warn_fill"], color=c["warn"])
+        lines.append(f'"{_q(n)}" [' + ", ".join(f'{k}="{v}"' for k, v in attrs.items()) + "];")
+    for a, b, d in edges:
+        color = {"accent": c["accent"], "violet": c["violet"], "bad": c["bad"]}.get(d.get("color"), c["muted"])
+        lines.append(f'"{_q(a)}" -> "{_q(b)}" [label="{_q(d.get("label", ""))}", penwidth={d.get("width", 1.2):.1f}, '
+                     f'color="{color}", fontcolor="{color}", style="{d.get("style", "solid")}"];')
+    return "\n".join(lines) + "}"
+
+
+def trace_dot(graph, root, unit="USDT"):
+    """Trace graph from flows.trace() as Graphviz."""
+    nodes = {}
+    for n, d in graph["nodes"].items():
+        sub = (f"⚑ {d['watchlist'][:24]}" if d.get("watchlist") else
+               "service · not traced" if d.get("service") else d.get("label") or "")
+        nodes[n] = {"root": n == root, "flag": bool(d.get("watchlist")), "service": d.get("service"), "sub": sub}
+    edges = [(a, b, {"label": f"{compact(d['usdt'])} {unit} · {d['n']}", "width": 1 + min(d["usdt"] / 50000, 3)})
+             for a, b, d in graph["edges"]]
+    return dot(nodes, edges)

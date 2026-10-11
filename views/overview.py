@@ -5,13 +5,14 @@ import pandas as pd
 import streamlit as st
 
 from src import config
-from src.live import store, tron
-from views.common import analyst, page_header
+from src.live import store
+from views.common import analyst, page_header, role
 
 page_header("Investigation platform", "Tracing illicit crypto flows to the people behind them",
-            "Bitcoin transaction risk, live TRON/USDT wallet tracing, smart-contract audit and mobile-money attribution, "
-            "with one case register and audit trail.",
-            {"Signed in as": analyst(), "Chains": "Bitcoin · TRON", "Assets": "BTC · USDT"})
+            "Live wallet tracing on TRON, Ethereum and Bitcoin, cross-chain links, smart-contract audit and mobile-money "
+            "attribution, all feeding one entity graph, one case workspace and a tamper-evident audit trail.",
+            {"Signed in as": f"{analyst()} ({role()})", "Chains": "TRON · Ethereum · Bitcoin",
+             "Assets": "USDT · USDC · ETH · BTC"})
 
 cases = store.cases()
 open_cases = cases[cases["status"].isin(["Open", "Escalated"])]
@@ -21,31 +22,41 @@ if meta_f.exists():
     scored = pd.read_csv(config.OUTPUT_DIR / "scored_test.csv", usecols=["band"])
     alerts = int((scored["band"] == "High").sum())
 
-m = st.columns(4)
+n_ent, n_link = store.graph_stats()
+m = st.columns(5)
 m[0].metric("Open cases", len(open_cases))
 m[1].metric("High-risk open cases", int((open_cases["risk_band"] == "High").sum()))
-m[2].metric("Watched wallets", len(store.watchlist()))
-m[3].metric("Bitcoin high-risk alerts", alerts if alerts is not None else "-")
+m[2].metric("Entities in graph", f"{sum(n_ent.values()):,}", f"{sum(n_link.values()):,} links", delta_color="off", delta_arrow="off")
+m[3].metric("Watched wallets", len(store.watchlist()))
+m[4].metric("Bitcoin model alerts", alerts if alerts is not None else "-")
+
+with st.form("quick_any"):
+    c1, c2 = st.columns([5, 1], vertical_alignment="bottom")
+    addr = c1.text_input("Investigate any address", placeholder="TRON T…, Ethereum 0x… or Bitcoin bc1… / 1… / 3…")
+    if c2.form_submit_button("Investigate", type="primary", icon=":material/search:"):
+        chain = store.chain_of(addr)
+        if chain:
+            key, page = {"tron": ("tron_addr", "views/tron.py"), "eth": ("eth_addr", "views/ethereum.py"),
+                         "btc": ("btc_addr", "views/btc_live.py")}[chain]
+            st.session_state[key] = addr.strip()
+            st.switch_page(page)
+        st.error("Not a TRON, Ethereum or Bitcoin address.")
 
 st.subheader("Start an investigation")
 c1, c2 = st.columns(2)
 with c1, st.container(border=True):
-    st.markdown("**:material/account_balance_wallet: TRON / USDT wallet**")
-    with st.form("quick_tron", border=False):
-        addr = st.text_input("Wallet address", placeholder="T…", label_visibility="collapsed")
-        if st.form_submit_button("Investigate", type="primary"):
-            if tron.valid_address(addr.strip()):
-                st.session_state["tron_addr"] = addr.strip()
-                st.switch_page("views/tron.py")
-            st.error("Not a valid TRON address.")
+    st.markdown("**:material/swap_horiz: Cross-chain tracing**")
+    st.caption("Same-key twins on TRON and Ethereum, and funds hopping between TRON, Ethereum and Bitcoin.")
+    if st.button("Trace across chains"):
+        st.switch_page("views/crosschain.py")
 with c2, st.container(border=True):
     st.markdown("**:material/data_object: Smart contract**")
-    st.caption("Upload Solidity source and get a vulnerability report in seconds.")
+    st.caption("Upload Solidity source or give a deployed Ethereum contract address; findings in seconds.")
     if st.button("Audit a contract"):
         st.switch_page("views/contracts.py")
 c3, c4 = st.columns(2)
 with c3, st.container(border=True):
-    st.markdown("**:material/currency_bitcoin: Bitcoin alerts**")
+    st.markdown("**:material/hub: Bitcoin graph model**")
     if meta_f.exists():
         meta = json.load(open(meta_f))
         st.caption(f"{meta['model']} graph model · alert precision target {meta['precision_target']:.0%}")

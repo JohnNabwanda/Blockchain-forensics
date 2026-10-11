@@ -107,6 +107,10 @@ streamlit run app.py                     # http://localhost:8501
 - Cases, entity graph, leads, thresholds, custody register and audit log are stored in `data/platform.db`
   (SQLite, git-ignored). A database from an earlier version is upgraded on first start.
 
+- **Demo data:** `python demo/seed_demo.py` builds `data/demo.db` from real public chain data (OFAC-listed
+  watchlist, five cases, leads, an evidence pack); run the platform on it with
+  `PLATFORM_DB=data/demo.db streamlit run app.py`. Test steps and expected results: `demo/DEMO_GUIDE.md`.
+
 - **Research results:** the Phase 1–3 evaluation dashboards from `outputs/` are shown inside the platform
   (build them with the `build_*dashboard.py` scripts).
 

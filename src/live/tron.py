@@ -4,6 +4,7 @@ Fetches a wallet's real USDT (TRC-20) transfers, summarises its behaviour, follo
 forward and backward, and scores risk from transparent indicators. Every indicator is a lead for an
 analyst, never proof of wrongdoing.
 """
+import hashlib
 import time
 
 import pandas as pd
@@ -26,8 +27,18 @@ def _headers():
     return {"TRON-PRO-API-KEY": key} if key else {}
 
 
+B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+
 def valid_address(addr):
-    return isinstance(addr, str) and len(addr) == 34 and addr.startswith("T") and addr.isalnum()
+    """A TRON address: base58check of 0x41 + 20 bytes, so a mistyped character fails the checksum."""
+    if not (isinstance(addr, str) and len(addr) == 34 and addr.startswith("T") and all(c in B58 for c in addr)):
+        return False
+    n = 0
+    for c in addr:
+        n = n * 58 + B58.index(c)
+    raw = n.to_bytes(25, "big")
+    return raw[0] == 0x41 and hashlib.sha256(hashlib.sha256(raw[:21]).digest()).digest()[:4] == raw[21:]
 
 
 def fetch_transfers(address, max_transfers=1000, since=None):

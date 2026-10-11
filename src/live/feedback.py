@@ -42,7 +42,7 @@ def propose(module):
         return None
     cur = current(module)
     before, n_before = precision_at(d, cur["high"])
-    ok = []
+    ok = [cur["high"]] if before is not None and before >= PRECISION_TARGET else []   # never raise without cause
     for t in sorted(d["score_at_review"].unique()):
         p, n = precision_at(d, t)
         if p is not None and p >= PRECISION_TARGET:
@@ -52,8 +52,8 @@ def propose(module):
         reason = f"lowest score where >= {PRECISION_TARGET:.0%} of decided leads were confirmed"
     else:
         # no level is precise enough: only scores above every dismissed lead stay High
-        high = float(min(100.0, d.loc[d["status"] == "Dismissed", "score_at_review"].max() + 1))
-        reason = f"no score level reached {PRECISION_TARGET:.0%} confirmed; raised above every dismissed lead"
+        high = float(min(100.0, max(cur["high"], d.loc[d["status"] == "Dismissed", "score_at_review"].max() + 1)))
+        reason = f"no score level reached {PRECISION_TARGET:.0%} confirmed; High kept above every dismissed lead"
     after, n_after = precision_at(d, high)
     return {"module": module, "decisions": len(d), "confirmed": int((d["status"] == "Confirmed").sum()),
             "current_high": cur["high"], "high": high, "medium": round(high * MEDIUM_FRACTION, 1),

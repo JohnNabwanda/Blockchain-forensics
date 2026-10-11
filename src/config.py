@@ -1,4 +1,5 @@
 """Central settings for the pipelines and the investigation platform. Change values here, not inside the code."""
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -84,7 +85,8 @@ def switcher_links(page):
 
 
 # ---------------------------------------------------------------- investigation platform (app.py)
-PLATFORM_DB = ROOT / "data" / "platform.db"      # cases, audit log and watchlist (git-ignored)
+# cases, audit log and watchlist (git-ignored); PLATFORM_DB=data/demo.db runs the platform on the demo data
+PLATFORM_DB = ROOT / os.environ.get("PLATFORM_DB", "data/platform.db")
 SECRETS_FILE = ROOT / ".streamlit" / "secrets.toml"
 SLITHER_ENV = ROOT / ".venv-phase3"              # separate environment that has Slither installed
 CONTRACT_SCAN_TIMEOUT_S = 240

@@ -13,3 +13,6 @@ data/platform.db
 data/contract_scans/
 .streamlit/secrets*.toml
 data/*.db
+
+# demo evidence packs are rebuilt by demo/seed_demo.py
+demo/output/

@@ -133,7 +133,7 @@ def verify(analyst, data, name="uploaded pack"):
     extra = set(z.namelist()) - set(manifest["files"]) - {MANIFEST}
     problems += [f"{f}: not in manifest" for f in sorted(extra)]
     reg = store.custody_log(manifest.get("case_id"))
-    registered = bool(len(reg) and (reg["sha256"] == digest).any())
+    registered = bool(len(reg) and ((reg["action"] == "exported") & (reg["sha256"] == digest)).any())   # only exports count
     ok = not problems
     store.custody(analyst, manifest.get("case_id"), "verified" if ok else "verification failed", name, digest,
                   "registered export" if registered else "pack hash not in custody register")

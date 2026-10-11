@@ -1,0 +1,3 @@
+ts,direction,counterparty_account,amount_tzs,operator
+2026-06-01 14:05:00,sent,255700000001,265000,M-Pesa
+2026-06-01 15:10:00,in,255700000002,540000,Airtel Money

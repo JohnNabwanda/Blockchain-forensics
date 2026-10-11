@@ -1,0 +1,5 @@
+ts,direction,counterparty_account,amount_tzs,operator
+2025-12-13 12:16:06,in,TEST-ACC-0004,38057600.0,HaloPesa
+2025-12-13 12:17:03,in,TEST-ACC-0004,13702800.0,HaloPesa
+2025-12-15 12:43:21,in,TEST-ACC-0004,31905200.0,HaloPesa
+2025-12-15 12:45:51,in,TEST-ACC-0004,13702800.0,HaloPesa

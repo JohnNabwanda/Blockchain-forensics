@@ -5,6 +5,9 @@ from the OFAC SDN list. The other addresses are public examples of a *pattern* (
 activity), not allegations about their owners. Scores were measured on 11 Oct 2026; live chains keep moving, so
 amounts and some scores will drift.
 
+For a printable sheet of inputs to enter yourself (TRON, Ethereum, Bitcoin, cross-chain, contracts, mobile money,
+each with High, Medium and Low examples), see `demo/TEST_DATA.pdf` (or `TEST_DATA.html` to copy addresses).
+
 ## 1. Start the demo
 
 ```bash

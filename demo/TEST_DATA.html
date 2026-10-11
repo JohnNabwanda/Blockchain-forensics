@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Data Sheet</title>
+<style>
+  :root { --ink:#0c1524; --ink2:#3e4c62; --line:#cdd8e6; --head:#0a86a8; --high:#c0262d; --med:#b26a00; --low:#0f7a3d; --bg:#ffffff; --soft:#f2f6fb; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink:#e8f1fb; --ink2:#a9b8cc; --line:#2a3850; --head:#38d6f0; --high:#ff6b72; --med:#f5b041; --low:#4ade80; --bg:#0b1220; --soft:#111b2c; } }
+  :root[data-theme="dark"] { --ink:#e8f1fb; --ink2:#a9b8cc; --line:#2a3850; --head:#38d6f0; --high:#ff6b72; --med:#f5b041; --low:#4ade80; --bg:#0b1220; --soft:#111b2c; }
+  body { font-family: "Segoe UI", Arial, sans-serif; color: var(--ink); background: var(--bg); margin: 0 auto; max-width: 1000px; padding: 24px 16px 48px; font-size: 14px; line-height: 1.45; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h2 { font-size: 19px; color: var(--head); margin: 30px 0 6px; border-bottom: 2px solid var(--head); padding-bottom: 4px; page-break-after: avoid; }
+  p, li { color: var(--ink); }
+  .sub { color: var(--ink2); margin: 0 0 14px; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 6px; font-size: 13px; page-break-inside: auto; }
+  th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--soft); font-weight: 600; }
+  tr { page-break-inside: avoid; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 12.5px; word-break: break-all; }
+  .H { color: var(--high); font-weight: 700; } .M { color: var(--med); font-weight: 700; } .L { color: var(--low); font-weight: 700; } .E { color: var(--ink2); font-weight: 700; }
+  .box { background: var(--soft); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; margin: 10px 0; }
+  .wrap { overflow-x: auto; }
+  td code { white-space: nowrap; font-size: 11.5px; }
+  td.H, td.M, td.L, td.E { white-space: nowrap; }
+  table.xc td code { white-space: normal; font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>Blockchain Forensics Platform: test data sheet</h1>
+<p class="sub">Inputs to type or upload yourself, with the result the system should give. Measured on 11 October 2026.</p>
+
+<div class="box">
+<b>Before you start</b>
+<ol>
+<li>Use the <b>demo platform</b> at <code>http://localhost:8502</code> and sign in as <code>supervisor</code>. Several results depend on its watchlist of OFAC-sanctioned addresses, so the normal platform on port 8501 will score them lower. To start it: <code>.venv/bin/python demo/seed_demo.py</code>, then <code>PLATFORM_DB=data/demo.db .venv/bin/streamlit run app.py --server.port 8502</code>.</li>
+<li>The wallets are real and the data is live, so scores can drift as the chains move. Wallets that have gone quiet (most of the sanctioned ones) stay stable. Busy exchange wallets change daily.</li>
+<li>Default bands for wallets: <span class="H">High</span> ≥ 50, <span class="M">Medium</span> 20–49, <span class="L">Low</span> under 20. If you run the feedback-loop test, the thresholds change. Re-run the seed to reset them.</li>
+<li>Every address is a public example of a <i>pattern</i>, such as a sanctions listing, mixing or pass-through. It is not an accusation against its owner. All mobile-money accounts are fake <code>TEST-ACC-…</code> placeholders.</li>
+</ol>
+</div>
+
+<h2>1. USDT wallets on TRON</h2>
+<p>Investigate → <b>TRON / USDT wallets</b>. Paste the address and press Investigate.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Address</th><th>Expected</th><th>Why</th></tr>
+<tr><td>T1</td><td><code>TASWbk6X1wiTku5TMmMQYqYFvshVEtfJy8</code></td><td class="H">80 High</td><td>OFAC-listed (on the watchlist) plus rapid pass-through</td></tr>
+<tr><td>T2</td><td><code>TPFa9gQW2Mvebjo74FW6ZdFY2GUCg9V9xB</code></td><td class="H">70 High</td><td>Dealt directly with a sanctioned wallet, pass-through, P2P-like behaviour</td></tr>
+<tr><td>T3</td><td><code>TEdvb5Rff8fSWEeMZwXCHA8WmZCXRRtiQr</code></td><td class="H">65 High</td><td>Exposure to a sanctioned wallet, pass-through, mostly round amounts</td></tr>
+<tr><td>T4</td><td><code>TEEYCuGDyeNkuDj4u6GQRXxXo3Nh29r2vP</code></td><td class="H">60 High</td><td>OFAC-listed; about 1.26 M USDT moved</td></tr>
+<tr><td>T5</td><td><code>TXSsAGqvTMBtC5TRV4prdBjdh5ZMD2kwe1</code></td><td class="M">45 Medium</td><td>Pass-through, round amounts, new wallet with large volume</td></tr>
+<tr><td>T6</td><td><code>TKCkaxc1hPo7XmHNas6h4GvauHoyBVW8Bm</code></td><td class="M">40 Medium</td><td>Exposure to a sanctioned wallet only</td></tr>
+<tr><td>T7</td><td><code>TGFWLzVvyDdwnrN3XKKGsqthFf61nTX155</code></td><td class="M">35 Medium</td><td>Pass-through, fan-in (collection wallet)</td></tr>
+<tr><td>T8</td><td><code>TDxQY8axwyTEWXiixVzVBG6Q46zKLU9fjb</code></td><td class="M">20 Medium</td><td>Rapid pass-through only</td></tr>
+<tr><td>T9</td><td><code>TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe</code></td><td class="L">0 Low</td><td>High-volume service: "Likely exchange or large service"</td></tr>
+<tr><td>T10</td><td><code>TV6MuMXfmLbBqPZvBHdwFsDnQeVfnmiuSi</code></td><td class="L">0 Low</td><td>Busy wallet with no risk indicators</td></tr>
+<tr><td>T11</td><td><code>TTjHn8qNVxazB3UroiekGRPuM2w2GwvNbm</code></td><td class="E">Error</td><td>Last character changed, so the checksum fails: "not a valid TRON address"</td></tr>
+</table></div>
+<p>Also try: the <b>Fund flow trace</b> tab on T4 (backward, 1 hop). Funding wallets appear in the graph, and exchanges are shown in yellow.</p>
+
+<h2>2. Ethereum wallets</h2>
+<p>Investigate → <b>Ethereum wallets</b>.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Address</th><th>Expected</th><th>Why</th></tr>
+<tr><td>E1</td><td><code>0x8589427373D6D84E98730D7795D8f6f8731FDA16</code></td><td class="H">100 High</td><td>Tornado Cash donation address: sanctioned, frozen, mixer and exposure flags</td></tr>
+<tr><td>E2</td><td><code>0x098B716B8Aaf21512996dC57EB0615e2383E2f96</code></td><td class="H">100 High</td><td>Ronin bridge exploiter: sanctioned, frozen, pass-through</td></tr>
+<tr><td>E3</td><td><code>0x7F367cC41522cE07553e823bf3be79A889DEbe1B</code></td><td class="H">100 High</td><td>OFAC-listed address, frozen by the stablecoin issuer</td></tr>
+<tr><td>E4</td><td><code>0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b</code></td><td class="H">100 High</td><td>Tornado Cash Router (a contract): mixer, collection pattern. Has a <b>Contract audit</b> tab</td></tr>
+<tr><td>E5</td><td><code>0x98138788220cd08e17e364685d8af4edcea6ac0f</code></td><td class="H">80 High</td><td>Not sanctioned itself, but dealt directly with a mixer and with sanctioned addresses</td></tr>
+<tr><td>E6</td><td><code>0x7eee190785685c8c25d5cef5bb3204cfc725cdf3</code></td><td class="M">35 Medium</td><td>Pass-through, fan-in</td></tr>
+<tr><td>E7</td><td><code>0x27239549dd40e1d60f5b80b0c4196923745b1fd2</code></td><td class="M">30 Medium</td><td>Pass-through, possible P2P trader or service</td></tr>
+<tr><td>E8</td><td><code>0xfaa46f9a96a3d273e737de6e3b8a1444f4e81063</code></td><td class="M">25 Medium</td><td>Pass-through, mostly round amounts</td></tr>
+<tr><td>E9</td><td><code>0x28C6c06298d514Db089934071355E5743bf21d60</code></td><td class="L">10 Low</td><td>Binance hot wallet: "Likely exchange or large service"</td></tr>
+<tr><td>E10</td><td><code>0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045</code></td><td class="L">0 Low</td><td>Vitalik Buterin: no indicators (a clean control)</td></tr>
+<tr><td>E11</td><td><code>0x1234</code></td><td class="E">Error</td><td>Too short: "not a valid Ethereum address"</td></tr>
+</table></div>
+<p>The same-key check runs on every address. None of these has an active TRON twin, so no "Same key on TRON" box appears.</p>
+
+<h2>3. Bitcoin addresses</h2>
+<p>Investigate → <b>Bitcoin addresses</b>.</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Address</th><th>Expected</th><th>Why</th></tr>
+<tr><td>B1</td><td><code>125W5ek3DT6Zqy5S2iPt4FHQdNMCbZA3FU</code></td><td class="H">80 High</td><td>OFAC-listed, rapid pass-through</td></tr>
+<tr><td>B2</td><td><code>1648zkx5W1b55BZwCQnJ4byrbffUpTxfqQ</code></td><td class="H">80 High</td><td>Exposure to a sanctioned address, pass-through, CoinJoin mixing</td></tr>
+<tr><td>B3</td><td><code>123WBUDmSJv4GctdVEz6Qq6z8nXSKrJ4KX</code></td><td class="H">75 High</td><td>OFAC-listed, fan-in (collection)</td></tr>
+<tr><td>B4</td><td><code>392XxH946Q1BNcDuBtD3ZNdRF7vCKpnqYv</code></td><td class="H">60 High</td><td>Exposure to a sanctioned address, pass-through</td></tr>
+<tr><td>B5</td><td><code>17d1bsFWcG7rkQSWYHSQJPeSy4rijqjFWd</code></td><td class="M">40 Medium</td><td>Exposure to a sanctioned address only</td></tr>
+<tr><td>B6</td><td><code>bc1qnhsxlya64swh5mqyprk68yhaenxfhzkpng07uy</code></td><td class="M">35 Medium</td><td>Pass-through, fan-out (distribution)</td></tr>
+<tr><td>B7</td><td><code>34xp4vRoCGJym3xR7yCVPFHoCNxv4Twseo</code></td><td class="M">20 Medium</td><td>CoinJoin participation, listed with transaction links</td></tr>
+<tr><td>B8</td><td><code>bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h</code></td><td class="L">10 Low</td><td>Very large exchange wallet: "Likely exchange"</td></tr>
+<tr><td>B9</td><td><code>bc1qm9gpkjf6h66uzxyhlctkwy6rzzc7f5avxqxpxd</code></td><td class="L">0 Low</td><td>No indicators</td></tr>
+<tr><td>B10</td><td><code>1KNm4K8GUK8sMoxc2Z3zU8Uv5FDVjrA72p</code></td><td class="L">0 Low</td><td>No indicators</td></tr>
+<tr><td>B11</td><td><code>bc1qnotanaddress</code></td><td class="E">Error</td><td>"That is not a valid Bitcoin address"</td></tr>
+</table></div>
+
+<h2>4. Cross-chain tracing</h2>
+<p>Investigate → <b>Cross-chain tracing</b>. Put each address in the box for its chain and press Run. Hop counts for exchange wallets change daily; the order of magnitude should hold.</p>
+<p>To copy an address on one line, use the earlier tables: <code>TJDENs…</code> is T9, <code>TEEYCu…</code> is T4, <code>0x28C6…</code> is E9, <code>0x098B…</code> is E2, <code>0xd8dA…</code> is E10, <code>bc1qm34…</code> is B8, and <code>TTjHn8…</code> is the wallet in section 6.</p>
+<div class="wrap"><table class="xc">
+<tr><th>#</th><th>TRON box</th><th>Ethereum box</th><th>Bitcoin box</th><th>Expected</th></tr>
+<tr><td>X1</td><td><code>TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe</code></td><td><code>0x28C6c06298d514Db089934071355E5743bf21d60</code></td><td>(empty)</td><td><b>Many hops</b> (about 100, TRON → Ethereum), a mix of <span class="H">High</span>, <span class="M">Medium</span> and <span class="L">Low</span> confidence. Two exchanges produce many coincidental matches, which is why hops are leads, not proof</td></tr>
+<tr><td>X2</td><td>(empty)</td><td><code>0x28C6c06298d514Db089934071355E5743bf21d60</code></td><td><code>bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h</code></td><td><b>About 40 hops</b> (Bitcoin → Ethereum), mostly <span class="H">High</span> confidence</td></tr>
+<tr><td>X3</td><td><code>TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe</code></td><td>(empty)</td><td><code>bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h</code></td><td><b>One hop or a few</b> (TRON → Bitcoin)</td></tr>
+<tr><td>X4</td><td><code>TJDENsfBJs4RFETt1X1W8wMDc8M5XnJhCe</code></td><td><code>0x28C6c06298d514Db089934071355E5743bf21d60</code></td><td><code>bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h</code></td><td><b>All three chains</b>: about 125 hops in three directions</td></tr>
+<tr><td>X5</td><td><code>TTjHn8qNVxazB3UroiekGRPuM2w2GwvNbn</code></td><td><code>0x098B716B8Aaf21512996dC57EB0615e2383E2f96</code></td><td>(empty)</td><td><b>No hops</b>: two sanctioned wallets active in different years. Same-key check: twins not active</td></tr>
+<tr><td>X6</td><td><code>TEEYCuGDyeNkuDj4u6GQRXxXo3Nh29r2vP</code></td><td><code>0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045</code></td><td>(empty)</td><td><b>No hops</b>: unrelated wallets</td></tr>
+<tr><td>X7</td><td><code>TTjHn8qNVxazB3UroiekGRPuM2w2GwvNbn</code></td><td>(empty)</td><td>(empty)</td><td><b>Only the same-key check</b>: its Ethereum twin <code>0xc2d06dae…62f4</code> has no activity, and there are no hops because only one chain is given</td></tr>
+</table></div>
+<p>Pick a case in "Case (optional)" before running, and the links are attached to that case and shown in its Case graph.</p>
+
+<h2>5. Smart-contract audit</h2>
+<p>Investigate → <b>Smart-contract audit</b>. Files are in <code>demo/contracts/</code> (upload tab). Contract scores: <span class="H">High</span> ≥ 50, <span class="M">Medium</span> 20–49, <span class="L">Low</span> under 20 (High-impact finding 30 points, Medium 10, Low 2).</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>Input</th><th>Expected</th><th>Main findings</th></tr>
+<tr><td>S1</td><td><code>07_delegatecall_FibonacciBalance.sol</code></td><td class="H">100 High</td><td>arbitrary-send-eth, controlled-delegatecall, uninitialized-state</td></tr>
+<tr><td>S2</td><td><code>04_unchecked_call_KingOfTheEther.sol</code></td><td class="H">100 High</td><td>controlled-array-length, msg-value-in-nonpayable, unchecked-send</td></tr>
+<tr><td>S3</td><td><code>06_reentrancy_EtherBank.sol</code></td><td class="H">60 High</td><td>reentrancy-eth, msg-value-in-nonpayable</td></tr>
+<tr><td>S4</td><td><code>08_reentrancy_EtherStore.sol</code></td><td class="M">32 Medium</td><td>reentrancy-eth</td></tr>
+<tr><td>S5</td><td><code>01_reentrancy_SimpleDAO.sol</code></td><td class="M">30 Medium</td><td>reentrancy-eth (the flaw behind the 2016 DAO hack)</td></tr>
+<tr><td>S6</td><td><code>05_safe_Vault.sol</code></td><td class="L">0 Low</td><td>None: the control sample, written defensively</td></tr>
+<tr><td>S7</td><td><code>02_overflow_BECToken.sol</code></td><td class="L">0 Low</td><td><b>Known miss</b>: the overflow is real, but Slither has no detector for it on Solidity 0.4</td></tr>
+<tr><td>S8</td><td><code>03_access_control_constructor.sol</code></td><td class="L">0 Low</td><td><b>Known miss</b>: the misnamed constructor is not detected</td></tr>
+<tr><td>S9</td><td>Deployed: <code>0xdAC17F958D2ee523a2206206994597C13D831ec7</code></td><td class="H">100 High</td><td>Tether (USDT), solc 0.4.18. Many Medium <code>erc20-interface</code> and Low findings add up. The score counts findings, not exploitability</td></tr>
+<tr><td>S10</td><td>Deployed: <code>0xd90e2f925DA726b50C4Ed8D0Fb90Ad053324F31b</code></td><td class="M">24 Medium</td><td>Tornado Cash Router, solc 0.6.12, 39 files: unused-return. Turn off "Only the contract's own file" to see the library findings too</td></tr>
+</table></div>
+<p>S9 and S10: use the "Deployed on Ethereum" tab, or the Contract audit tab on the Ethereum page. The compiler download and scan take up to a minute.</p>
+
+<h2>6. Mobile-money attribution</h2>
+<p>Investigate → <b>Mobile-money attribution</b> → "Import a case". In every test, enter this wallet and the rate <b>2700</b>, then upload the file from <code>demo/statements/</code>:</p>
+<div class="box"><b>Trader's TRON wallet:</b> <code style="white-space:nowrap">TTjHn8qNVxazB3UroiekGRPuM2w2GwvNbn</code> &nbsp; · &nbsp; <b>USD/TZS rate:</b> 2700</div>
+<p> The transfers are the wallet's real USDT transfers. The payments are made up and placed around them (<code>demo/make_statements.py</code>).</p>
+<div class="wrap"><table>
+<tr><th>#</th><th>File</th><th>Expected</th><th>What it tests</th></tr>
+<tr><td>M1</td><td><code>mm1_high_repeated_trades.csv</code></td><td class="H">1 High pair</td><td>5 payments, each matching a transfer within minutes at a 1.5% spread: <code>TEST-ACC-0001</code>, 5 trades, evidence 3.35</td></tr>
+<tr><td>M2</td><td><code>mm2_medium_two_trades.csv</code></td><td class="M">1 Medium pair</td><td>2 matched trades: <code>TEST-ACC-0002</code>, evidence 1.53</td></tr>
+<tr><td>M3</td><td><code>mm3_low_single_trade.csv</code></td><td class="L">1 Low pair</td><td>One matched trade: <code>TEST-ACC-0003</code>. Tick <b>Low</b> in the Confidence filter to see it, because the default shows only High and Medium</td></tr>
+<tr><td>M4</td><td><code>mm4_no_match_timing.csv</code></td><td class="E">No match</td><td>Payments 3 hours before the transfers, outside the time window</td></tr>
+<tr><td>M5</td><td><code>mm5_no_match_spread.csv</code></td><td class="E">No match</td><td>Right times, but the amounts imply a 12% spread (the accepted range is up to 5%)</td></tr>
+<tr><td>M6</td><td><code>mm6_mixed_high_medium_low.csv</code></td><td><span class="H">High</span> + <span class="M">Medium</span> + <span class="L">Low</span></td><td>M1, M2 and M3 together plus 3 unrelated decoy payments: 8 of 11 rows match, and the decoys stay unmatched</td></tr>
+<tr><td>M7</td><td><code>statement_missing_column.csv</code></td><td class="E">Error</td><td>"Statement is missing columns: counterparty_account"</td></tr>
+<tr><td>M8</td><td><code>statement_bad_direction.csv</code></td><td class="E">Error</td><td>"direction must be 'in' or 'out' on every row"</td></tr>
+</table></div>
+<p>The <b>Training sample</b> option needs no input. It shows the method on generated data.</p>
+
+<h2>7. Quick checks after testing</h2>
+<ul>
+<li><b>Entity graph</b>: search any address you looked up. It is now in the shared graph, with its links.</li>
+<li><b>Audit and custody</b>: every lookup, trace, scan and import you did is listed. "Verify chain" should report the chain intact.</li>
+<li><b>Cases</b>: "Open case" on any High result creates a case. Attach traced wallets as leads and decide them in the Review queue.</li>
+</ul>
+</body>
+</html>

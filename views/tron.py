@@ -38,7 +38,7 @@ if not address:
             "indicators, checks counterparties against the watchlist and traces funds forward and backward.")
     st.stop()
 if not tron.valid_address(address):
-    st.error("That is not a valid TRON address (34 characters starting with T).")
+    st.error("That is not a valid TRON address (34 characters starting with T, and the checksum must match).")
     st.stop()
 
 with st.spinner("Fetching transfers from the TRON blockchain…"):
